@@ -1,7 +1,7 @@
 OUTPUT_FORMAT(binary)
 
 SECTIONS {
-    . = 0xf1000;
+    . = 0xf0400;
 
     .text : {
         KEEP(*(.c_init*))
