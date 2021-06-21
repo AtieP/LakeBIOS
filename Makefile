@@ -4,7 +4,7 @@ OBJS := $(ASFILES:.asm=.o) $(CFILES:.c=.o)
 BIOS = atiebios.bin
 
 CC = gcc
-CFLAGS = -m32 -mno-sse -mno-sse2 -mno-mmx -mno-3dnow -mno-80387 -nostdlib -ffreestanding -fno-pic -fno-stack-protector -std=gnu99 -O2 -c
+CFLAGS = -m32 -mno-sse -mno-sse2 -mno-mmx -mno-3dnow -mno-80387 -nostdlib -ffreestanding -fno-pic -fno-stack-protector -std=gnu99 -O2 -Wall -Wextra -Ibios/ -c
 
 AS = nasm
 ASFLAGS := -f bin
@@ -22,7 +22,7 @@ $(BIOS): $(OBJS) bios/entry.asm
 	$(CC) $(CFLAGS) $< -o $@
 
 run:
-	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio
+	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio -vga std
 
 clean:
 	rm $(OBJS) cblob.bin $(BIOS)

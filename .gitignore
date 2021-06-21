@@ -3,3 +3,6 @@
 
 # Executable files
 *.bin
+
+# Misc
+.vscode

@@ -6,22 +6,6 @@ bits 16
 bios_entry:
     cli
 
-    ; Unlock BIOS so reads and writes will go to DRAM
-    ; and not do DMI
-    mov eax, 0x80000000 | 0x90
-    mov dx, 0xcf8
-    out dx, eax
-    mov dx, 0xcfc + (0x90 & 3)
-    in al, dx
-    mov bl, al
-
-    mov eax, 0x80000000 | 0x90
-    mov dx, 0xcf8
-    out dx, eax
-    mov dx, 0xcfc + (0x90 & 3)
-    mov al, bl
-    out dx, al
-
     ; Go to protected mode
     mov ax, cs
     mov ds, ax
