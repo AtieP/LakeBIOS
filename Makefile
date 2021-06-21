@@ -1,15 +1,28 @@
-AS = nasm
-ASFLAT := -f bin
-
+CFILES := $(shell find . -type f -name '*.c')
+LDFILE := linker.ld
+OBJS := $(ASFILES:.asm=.o) $(CFILES:.c=.o)
 BIOS = atiebios.bin
+
+CC = gcc
+CFLAGS = -m32 -mno-sse -mno-sse2 -mno-mmx -mno-3dnow -mno-80387 -nostdlib -ffreestanding -fno-pic -fno-stack-protector -std=gnu99 -O2 -c
+
+AS = nasm
+ASFLAGS := -f bin
+
+LD = ld
+LDFLAGS := -T$(LDFILE) -nostdlib -m elf_i386 -n
 
 all: $(BIOS)
 
-$(BIOS): bios/entry.asm
-	$(AS) $(ASFLAT) $< -o $@
+$(BIOS): $(OBJS) bios/entry.asm
+	$(LD) $(LDFLAGS) $(OBJS) -o cblob.bin
+	$(AS) $(ASFLAGS) bios/entry.asm -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) $< -o $@
 
 run:
-	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS)
+	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio
 
 clean:
-	rm $(BIOS)
+	rm $(OBJS) cblob.bin $(BIOS)

@@ -3,7 +3,7 @@ size: equ 0x10000
 org 0xf0000
 
 bits 16
-bios_main:
+bios_entry:
     cli
 
     ; Unlock BIOS so reads and writes will go to DRAM
@@ -16,7 +16,7 @@ bios_main:
     mov bl, al
 
     mov eax, 0x80000000 | 0x90
-    mov dx, 0xcfc
+    mov dx, 0xcf8
     out dx, eax
     mov dx, 0xcfc + (0x90 & 3)
     mov al, bl
@@ -45,6 +45,8 @@ protected_mode:
     mov fs, ax
     mov gs, ax
     mov ss, ax
+    mov esp, 0x2000
+    jmp c_code
     hlt
 
 bits 16
@@ -72,6 +74,11 @@ gdt:
 gdtr:
     dw gdt.end - gdt - 1
     dd gdt
+
+times 1024 - ($ - $$) db 0x00
+c_code:
+
+incbin "cblob.bin"
 
 times (size - 16) - ($ - $$) db 0x00
 
