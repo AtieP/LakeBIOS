@@ -61,12 +61,12 @@ void dram_unlock_bios() {
 
 // Open the SMM window
 void dram_open_smram() {
-    pci_cfg_write_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM, pci_cfg_read_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM) & ~DRAM_SMRAM_CLOSED | DRAM_SMRAM_OPEN | DRAM_SMRAM_DEFAULT);
+    pci_cfg_write_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM, (pci_cfg_read_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM) & ~DRAM_SMRAM_CLOSED) | DRAM_SMRAM_OPEN | DRAM_SMRAM_DEFAULT);
 }
 
 // Closes the SMM window
 void dram_close_smram() {
-    pci_cfg_write_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM, pci_cfg_read_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM) & ~DRAM_SMRAM_OPEN | DRAM_SMRAM_CLOSED | DRAM_SMRAM_DEFAULT);
+    pci_cfg_write_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM, (pci_cfg_read_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM) & ~DRAM_SMRAM_OPEN) | DRAM_SMRAM_CLOSED | DRAM_SMRAM_DEFAULT);
 }
 
 // Locks (applies) the SMM window
