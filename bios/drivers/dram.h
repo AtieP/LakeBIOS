@@ -23,7 +23,20 @@
 #define DRAM_PAM_HI_WO (2 << 4)
 #define DRAM_PAM_HI_DRAM (3 << 4)
 
+#define DRAM_SMRAM 0x9d
+
+#define DRAM_SMRAM_OPEN (1 << 6)
+#define DRAM_SMRAM_CLOSED (1 << 5)
+#define DRAM_SMRAM_LOCKED (1 << 4)
+#define DRAM_SMRAM_ENABLE (1 << 3)
+#define DRAM_SMRAM_DEFAULT (0b010)
+
 void dram_lock_bios();
 void dram_unlock_bios();
+
+void dram_open_smram();
+void dram_close_smram();
+void dram_lock_smram();
+void dram_enable_smram();
 
 #endif
