@@ -1,9 +1,10 @@
 # AtieBIOS
-Firmware for ICH9 (maybe PIIX3 in the future too) chipsets. Meant to be ran in emulators, specially QEMU.
+Firmware for the ICH9 chipset. Meant to be ran in emulators, specially QEMU.
 
 # Achievements
-- Unlocking the BIOS zone by manipulating the DRAM
-- Protected mode enter
+- BIOS shadowing/unshadowing by manipulating the DRAM's PAM registers
+- Minimal LPC and PCI drivers
+- SMM handling
 
 # Testing
 `make all run`
