@@ -1,7 +1,7 @@
-#include <print.h>
-#include <string.h>
 #include <drivers/dram.h>
 #include <drivers/pci.h>
+#include <tools/print.h>
+#include <tools/string.h>
 
 extern char bios_code_start[];
 extern char bios_code_end[];

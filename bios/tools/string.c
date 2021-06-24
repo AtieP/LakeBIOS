@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <string.h>
+#include <tools/string.h>
 
 void *memset(void *s, int c, size_t n) {
     uint8_t *s_uint8 = (uint8_t *) s;

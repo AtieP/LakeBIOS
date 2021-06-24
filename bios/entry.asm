@@ -1,4 +1,6 @@
-size: equ 0x10000
+bios_size: equ 0x10000
+bios_main: equ 0xf1800
+smm_main:  equ 0xf0800
 
 org 0xf0000
 
@@ -30,7 +32,7 @@ protected_mode:
     mov gs, ax
     mov ss, ax
     mov esp, 0x2000
-    jmp c_code
+    jmp bios_main
     hlt
 
 bits 16
@@ -61,11 +63,33 @@ gdtr:
     dd gdt
 
 times 1024 - ($ - $$) db 0x00
-c_code:
+smm_entry_code:
+    mov ax, 0xf000
+    mov ds, ax
+
+    lgdt [gdtr]
+
+    mov eax, cr0
+    or al, 1
+    mov cr0, eax
+
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    db 0x66
+    db 0xea
+    dd smm_main
+    dw 0x08
+
+times 1024 - ($ - smm_entry_code) db 0x00
 
 incbin "cblob.bin"
 
-times (size - 16) - ($ - $$) db 0x00
+times (bios_size - 16) - ($ - $$) db 0x00
 
 reset_vector:
     jmp 0xf000:0

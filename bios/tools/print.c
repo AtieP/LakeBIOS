@@ -1,7 +1,7 @@
 #include <stdarg.h>
-#include <print.h>
-#include <string.h>
 #include <cpu/pio.h>
+#include <tools/print.h>
+#include <tools/string.h>
 
 static void puts(const char *msg) {
     while (*msg) {
