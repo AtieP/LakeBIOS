@@ -12,5 +12,6 @@ void bios_main() {
     gdt_craft();
     gdt_reload();
     smm_init();
+    print("atiebios: execution ended.");
     for (;;);
 }
