@@ -34,6 +34,7 @@ protected_mode:
     hlt
 
 bits 16
+; Initial GDT for loading the BIOS, the BIOS will load its own GDT later
 gdt:
     dq 0
 

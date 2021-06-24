@@ -21,6 +21,12 @@ SECTIONS {
         *(.bss*)
     }
 
+    smm_code_start = .;
+    .smm : {
+        KEEP(*(.smm*))
+    }
+    smm_code_end = .;
+
     . = 0xffff0;
     bios_code_end = 0x100000;
 }
