@@ -23,7 +23,12 @@ void print(const char *msg, ...) {
                     number_str[--i] = number % 10 + '0';
                     number /= 10;
                 }
-                puts(number_str);
+                char *number_str_ptr = (char *) &number_str;
+                int counter = 0;
+                while (number_str_ptr[counter] == '0' && counter < 9) {
+                    counter++;
+                }
+                puts(&number_str_ptr[counter]);
             }
         } else {
             outb(0xe9, *msg);
