@@ -78,3 +78,31 @@ void dram_lock_smram() {
 void dram_enable_smram() {
     pci_cfg_write_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM, pci_cfg_read_byte(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_SMRAM) | DRAM_SMRAM_ENABLE | DRAM_SMRAM_DEFAULT);
 }
+
+// Enable the PCIEXBAR to enable ECAM
+void dram_enable_pciexbar() {
+    pci_cfg_write_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR, pci_cfg_read_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR) | DRAM_PCIEXBAR_ENABLE);
+}
+
+// Disable PCIEXBAR
+void dram_disable_pciexbar() {
+    pci_cfg_write_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR, pci_cfg_read_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR) & ~DRAM_PCIEXBAR_ENABLE);
+}
+
+// Set the PCIEXBAR address
+void dram_set_pciexbar(uint32_t base) {
+    // The register is 64 bit, split writes in 2 parts, also this register's layout is horrible, why is there a huge gap in there, like why
+    // (thanks intel)
+    pci_cfg_write_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR, pci_cfg_read_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR) | (
+        (base & ~(0b1111111111111111111111111111))
+    ));
+    pci_cfg_write_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR, pci_cfg_read_dword(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_PCIEXBAR) | (
+        (base >> 28)
+    ));
+}
+
+// Set the top of usable memory of lower memory (4gb)
+// This function is needed to unmark PCIe ECAM and BARs as RAM
+void dram_set_tolud(uint32_t tolud) {
+    pci_cfg_write_word(DRAM_BUS, DRAM_SLOT, DRAM_FUNCTION, DRAM_TOLUD, (tolud >> 16) & ~(0b1111));
+}

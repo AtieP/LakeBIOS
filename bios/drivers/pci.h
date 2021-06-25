@@ -12,6 +12,9 @@
 #define PCI_CFG_BAR0 0x10
 #define PCI_CFG_EXPANSION_ROM 0x26
 
+#define PCI_CFG_COMMAND_IO_ENABLE (1 << 0)
+#define PCI_CFG_COMMAND_MEM_ENABLE (1 << 1)
+
 #define PCI_CFG_HEADER_MULTIFUNCTION (1 << 7)
 
 uint8_t pci_cfg_read_byte(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset);
@@ -21,6 +24,11 @@ uint32_t pci_cfg_read_dword(uint8_t bus, uint8_t slot, uint8_t function, uint8_t
 void pci_cfg_write_byte(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset, uint8_t data);
 void pci_cfg_write_word(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset, uint16_t data);
 void pci_cfg_write_dword(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset, uint32_t data);
+
+void pci_enable_memory(uint8_t bus, uint8_t slot, uint8_t function);
+void pci_enable_io(uint8_t bus, uint8_t slot, uint8_t function);
+void pci_disable_memory(uint8_t bus, uint8_t slot, uint8_t function);
+void pci_disable_io(uint8_t bus, uint8_t slot, uint8_t function);
 
 void pci_enumerate();
 void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar);

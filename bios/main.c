@@ -15,6 +15,9 @@ void bios_main() {
     gdt_reload();
     smm_init();
     pci_enumerate();
+    dram_set_tolud(0xb0000000);
+    dram_set_pciexbar(0xb0000000);
+    dram_enable_pciexbar();
     print("atiebios: execution ended.");
     for (;;);
 }

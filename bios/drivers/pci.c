@@ -2,6 +2,9 @@
 #include <drivers/pci.h>
 #include <tools/print.h>
 
+static uintptr_t bar_mmio_base = 0xc0000000;
+static uint16_t bar_io_base = 0xc000;
+
 static void send_address(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset) {
     outd(PCI_CFG_ADDRESS, 0x80000000 | (bus << 16) | (slot << 11) | (function << 8) | (offset & 0xfc));
 }
@@ -36,7 +39,25 @@ void pci_cfg_write_dword(uint8_t bus, uint8_t slot, uint8_t function, uint8_t of
     outd(PCI_CFG_DATA, data);
 }
 
-void pci_setup_function(uint8_t bus, uint8_t slot, uint8_t function) {
+void pci_enable_memory(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_MEM_ENABLE);
+}
+
+void pci_enable_io(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_IO_ENABLE);
+}
+
+void pci_disable_memory(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~PCI_CFG_COMMAND_MEM_ENABLE);
+
+}
+
+void pci_disable_io(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~PCI_CFG_COMMAND_IO_ENABLE);
+
+}
+
+static void pci_setup_function(uint8_t bus, uint8_t slot, uint8_t function) {
     uint16_t vendor_id = pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR);
     if (vendor_id == 0xffff || vendor_id == 0x0000) {
         return;
@@ -48,7 +69,7 @@ void pci_setup_function(uint8_t bus, uint8_t slot, uint8_t function) {
     }
 }
 
-void pci_enumerate_slot(uint8_t bus, uint8_t slot) {
+static void pci_enumerate_slot(uint8_t bus, uint8_t slot) {
     uint16_t vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
     if (vendor_id == 0xffff || vendor_id == 0x0000) {
         return;
@@ -64,7 +85,7 @@ void pci_enumerate_slot(uint8_t bus, uint8_t slot) {
     }
 }
 
-void pci_enumerate_bus(uint8_t bus) {
+static void pci_enumerate_bus(uint8_t bus) {
     for (uint8_t slot = 0; slot < 32; slot++) {
         pci_enumerate_slot(bus, slot);
     }
@@ -117,6 +138,17 @@ void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     pci_cfg_write_dword(bus, slot, function, bar_offset, bar_original_value);
     // If BAR doesn't exist, size is 0
     if (bar_size == 0) {
+        return;
+    }
+    if (kind == 1) {
+        pci_cfg_write_dword(bus, slot, function, bar_offset, bar_io_base);
+        bar_io_base += bar_size;
+        pci_enable_io(bus, slot, function);
+    } else if (kind == 0) {
+        pci_cfg_write_dword(bus, slot, function, bar_offset, bar_mmio_base);
+        bar_mmio_base += bar_size;
+        pci_enable_memory(bus, slot, function);
+    } else if (kind == 2) {
         return;
     }
 }
