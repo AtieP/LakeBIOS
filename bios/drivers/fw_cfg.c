@@ -3,8 +3,6 @@
 #include <tools/bswap.h>
 #include <tools/string.h>
 
-// todo: do not do this...
-
 // Returns a file from the fw_cfg root directory.
 // Returns 0 in selector if not found.
 // Length and selectors are byte swapped to little endian.
