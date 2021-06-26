@@ -48,7 +48,7 @@ void dram_enable_smram();
 
 void dram_enable_pciexbar();
 void dram_disable_pciexbar();
-void dram_set_pciexbar(uint32_t base);
+void dram_set_pciexbar(uint64_t base);
 
 void dram_set_tolud(uint32_t tolud);
 

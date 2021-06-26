@@ -2,7 +2,9 @@
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <drivers/dram.h>
+#include <drivers/fw_cfg.h>
 #include <drivers/lpc.h>
+#include <tools/bswap.h>
 #include <tools/print.h>
 #include <tools/string.h>
 

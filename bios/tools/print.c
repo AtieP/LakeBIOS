@@ -45,6 +45,17 @@ void print(const char *msg, ...) {
                 }
                 puts(&number_str_ptr[counter]);
             }
+            if (*msg == 's') {
+                const char *string = va_arg(args, const char *);
+                puts(string);
+            }
+            if (*msg == 'S') {
+                const char *string = va_arg(args, const char *);
+                int length = va_arg(args, int);
+                for (int i = 0; i < length; i++) {
+                    outb(0xe9, string[i]);
+                }
+            }
         } else {
             outb(0xe9, *msg);
         }
