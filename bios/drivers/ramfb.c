@@ -14,7 +14,7 @@ static struct {
 
 
 int ramfb_detect() {
-    if (fw_cfg_get_selector("etc/ramfb") == 0) {
+    if (fw_cfg_get_file("etc/ramfb").selector == 0) {
         return -1;
     } else {
         return 0;
@@ -33,6 +33,6 @@ void ramfb_set_resolution(int width, int height, int bpp) {
     ramfb.flags = 0;
     ramfb.model = bswap32(0x34325241);
     // Apply settings
-    uint16_t ramfb_selector = fw_cfg_get_selector("etc/ramfb");
+    uint16_t ramfb_selector = fw_cfg_get_file("etc/ramfb").selector;
     fw_cfg_dma_write_selector(ramfb_selector, &ramfb, sizeof(ramfb), 0);
 }

@@ -4,19 +4,27 @@
 #include <tools/string.h>
 
 // todo: do not do this...
-struct {
-    uint32_t entries;
-    struct fw_cfg_file files[32];
-} __attribute__((__packed__)) files;
 
-uint16_t fw_cfg_get_selector(const char *filename) {
-    fw_cfg_dma_read_selector(FW_CFG_SELECT_ROOT, &files, sizeof(files), 0);
-    for (int i = 0; i < 32; i++) {
-        if (!strcmp(files.files[i].name, filename)) {
-            return bswap16(files.files[i].selector);
+// Returns a file from the fw_cfg root directory.
+// Returns 0 in selector if not found.
+// Length and selectors are byte swapped to little endian.
+struct fw_cfg_file fw_cfg_get_file(const char *filename) {
+    struct fw_cfg_file file;
+    uint32_t entries;
+    uint32_t offset = 0;
+    fw_cfg_dma_read_selector(FW_CFG_SELECT_ROOT, &entries, sizeof(uint32_t), offset);
+    offset += 4;
+    entries = bswap32(entries);
+    for (offset; offset < entries * sizeof(struct fw_cfg_file); offset += sizeof(struct fw_cfg_file)) {
+        fw_cfg_dma_read_selector(FW_CFG_SELECT_ROOT, &file, sizeof(struct fw_cfg_file), offset);
+        if (!strcmp(file.name, filename)) {
+            file.selector = bswap16(file.selector);
+            file.size = bswap32(file.size);
+            return file;
         }
     }
-    return 0;
+    file.selector = 0;
+    return file;
 }
 
 void fw_cfg_read_selector(uint16_t selector, void *buf, int len) {
