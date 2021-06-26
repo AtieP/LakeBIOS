@@ -28,6 +28,7 @@ struct fw_cfg_dma_access {
     uint64_t address;
 } __attribute__((__packed__));
 
+uint16_t fw_cfg_get_selector(const char *filename);
 void fw_cfg_read_selector(uint16_t selector, void *buf, int len);
 void fw_cfg_write_selector(uint16_t selector, const void *buf, int len);
 void fw_cfg_dma_read_selector(uint16_t selector, void *buf, int len, int offset);
