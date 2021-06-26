@@ -39,9 +39,9 @@ void fw_cfg_dma_read_selector(uint16_t selector, void *buf, int len, int offset)
     (void) offset;
     volatile struct fw_cfg_dma_access access = {0};
     access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_SKIP | FW_CFG_DMA_CNT_SELECT);
-    access.length = offset;
+    access.length = bswap32(offset);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
-    access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_READ | FW_CFG_DMA_CNT_SELECT);
+    access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_READ);
     access.length = bswap32(len);
     access.address = bswap64((uint64_t) (uint32_t) buf);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
@@ -51,9 +51,9 @@ void fw_cfg_dma_write_selector(uint16_t selector, const void *buf, int len, int 
     (void) offset;
     volatile struct fw_cfg_dma_access access = {0};
     access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_SKIP | FW_CFG_DMA_CNT_SELECT);
-    access.length = offset;
+    access.length = bswap32(offset);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
-    access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_WRITE | FW_CFG_DMA_CNT_SELECT);
+    access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_WRITE);
     access.length = bswap32(len);
     access.address = bswap64((uint64_t) (uint32_t) buf);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));

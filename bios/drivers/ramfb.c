@@ -22,7 +22,7 @@ int ramfb_detect() {
 }
 
 void *ramfb_get_framebuffer() {
-    return (void *) (pci_cfg_read_dword(0, 1, 0, PCI_CFG_BAR0) & ~(0b1111));
+    return (void *) (0x100000);
 }
 
 void ramfb_set_resolution(int width, int height, int bpp) {
