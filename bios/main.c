@@ -61,8 +61,8 @@ void bios_main() {
     }
     // PS/2 initialization
     // Disable devices
-    ps2_controller_disable_keyb();
-    ps2_controller_disable_mouse();
+    ps2_controller_disable_keyb_port();
+    ps2_controller_disable_mouse_port();
     // Flush keyboard buffer
     inb(0x60);
     // Disable IRQs and keyboard translation
@@ -76,8 +76,8 @@ void bios_main() {
         print("atiebios: PS/2 controller self test passed");
     }
     // Enable devices again
-    ps2_controller_enable_keyb();
-    ps2_controller_enable_mouse();
+    ps2_controller_enable_keyb_port();
+    ps2_controller_enable_mouse_port();
     // Reset them
     if (ps2_keyboard_reset() != 0) {
         print("atiebios: PS/2 keyboard failed to reset");

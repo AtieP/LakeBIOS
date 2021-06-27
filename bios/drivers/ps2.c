@@ -44,22 +44,22 @@ int ps2_controller_self_test() {
     }
 }
 
-void ps2_controller_enable_keyb() {
+void ps2_controller_enable_keyb_port() {
     poll_write();
     outb(PS2_COMMAND, PS2_COMMAND_KEYB_EN);
 }
 
-void ps2_controller_disable_keyb() {
+void ps2_controller_disable_keyb_port() {
     poll_write();
     outb(PS2_COMMAND, PS2_COMMAND_KEYB_DIS);
 }
 
-void ps2_controller_enable_mouse() {
+void ps2_controller_enable_mouse_port() {
     poll_write();
     outb(PS2_COMMAND, PS2_COMMAND_MOUSE_EN);
 }
 
-void ps2_controller_disable_mouse() {
+void ps2_controller_disable_mouse_port() {
     poll_write();
     outb(PS2_COMMAND, PS2_COMMAND_MOUSE_DIS);
 }
@@ -119,6 +119,24 @@ resend:
         return 0;
     }
     return -1;
+}
+
+void ps2_keyboard_enable_scanning() {
+resend:
+    mouse_write(PS2_KEYBOARD_COMMAND_SCANNING_EN);
+    uint8_t data = mouse_read();
+    if (data == 0xfe) {
+        goto resend;
+    }
+}
+
+void ps2_keyboard_disable_scanning() {
+resend:
+    mouse_write(PS2_KEYBOARD_COMMAND_SCANNING_DIS);
+    uint8_t data = mouse_read();
+    if (data == 0xfe) {
+        goto resend;
+    }
 }
 
 int ps2_mouse_reset() {
