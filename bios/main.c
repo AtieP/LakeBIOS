@@ -4,6 +4,7 @@
 #include <drivers/dram.h>
 #include <drivers/fw_cfg.h>
 #include <drivers/lpc.h>
+#include <drivers/ps2.h>
 #include <drivers/ramfb.h>
 #include <tools/bswap.h>
 #include <tools/print.h>
@@ -57,6 +58,32 @@ void bios_main() {
                 fw_cfg_dma_read_selector(wallpaper.selector, ramfb_get_framebuffer(), bmp_header.image_size, bmp_header.image_offset);
             }
         }
+    }
+    // PS/2 initialization
+    // Disable devices
+    ps2_controller_disable_keyb();
+    ps2_controller_disable_mouse();
+    // Flush keyboard buffer
+    inb(0x60);
+    // Disable IRQs and keyboard translation
+    ps2_controller_disable_keyb_irqs();
+    ps2_controller_disable_mouse_irqs();
+    ps2_controller_disable_keyb_translation();
+    // Self-test
+    if (ps2_controller_self_test() != 0) {
+        print("atiebios: could not initialize PS/2 controller because the self test failed");
+    } else {
+        print("atiebios: PS/2 controller self test passed");
+    }
+    // Enable devices again
+    ps2_controller_enable_keyb();
+    ps2_controller_enable_mouse();
+    // Reset them
+    if (ps2_keyboard_reset() != 0) {
+        print("atiebios: PS/2 keyboard failed to reset");
+    }
+    if (ps2_mouse_reset() != 0) {
+        print("atiebios: PS/2 mouse failed to reset");
     }
     for (;;);
 }
