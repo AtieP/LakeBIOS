@@ -11,3 +11,6 @@ Firmware for the ICH9 chipset. Meant to be ran in emulators, specially QEMU.
 
 # Testing
 `make all run`
+
+# Attribution
+Wallpaper at the root folder of the project made by chienba. https://pixabay.com/photos/grass-plants-flowers-garden-flora-6353411/

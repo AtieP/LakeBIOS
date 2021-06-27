@@ -22,7 +22,7 @@ $(BIOS): $(OBJS) bios/entry.asm
 	$(CC) $(CFLAGS) $< -o $@
 
 run:
-	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio -vga none -device ramfb
+	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio -vga none -device ramfb -fw_cfg "opt/wallpaper",file=wallpaper.bmp
 
 clean:
 	rm $(OBJS) cblob.bin $(BIOS)

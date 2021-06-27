@@ -11,6 +11,22 @@
 
 #include <drivers/pci.h>
 
+struct {
+    uint16_t signature;
+    uint32_t file_size;
+    uint32_t reserved;
+    uint32_t image_offset;
+    uint32_t header_size;
+    uint32_t image_width;
+    uint32_t image_height;
+    uint16_t image_planes;
+    uint16_t image_bpp;
+    uint32_t image_compression;
+    uint32_t image_size;
+    uint32_t image_xcount;
+    uint32_t image_ycount;
+} __attribute__((__packed__)) bmp_header;
+
 __attribute__((__section__(".c_init"), used))
 void bios_main() {
     dram_unlock_bios();
@@ -22,11 +38,24 @@ void bios_main() {
     dram_set_pciexbar(0xb0000000);
     dram_enable_pciexbar();
     if (ramfb_detect() == 0) {
-        print("atiebios: ramfb detected! setting a resolution, and drawing something to it :D");
-        ramfb_set_resolution(1024, 768, 32);
-        uint32_t *framebuffer = (uint32_t *) ramfb_get_framebuffer();
-        for (int i = 0; i < 1024 * 768 * 2; i++) {
-            framebuffer[i] = 0xabcdef;
+        print("atiebios: ramfb detected!");
+        struct fw_cfg_file wallpaper = fw_cfg_get_file("opt/wallpaper");
+        if (wallpaper.selector == 0) {
+            print("atiebios: no wallpaper found at fw_cfg opt/wallpaper, filling the screen with a color");
+            ramfb_set_resolution(1024, 768, 32);
+            uint32_t *framebuffer = (uint32_t *) ramfb_get_framebuffer();
+            for (int i = 0; i < 1024 * 768 * 2; i++) {
+                framebuffer[i] = 0xabcdef;
+            }   
+        } else {
+            fw_cfg_dma_read_selector(wallpaper.selector, &bmp_header, sizeof(bmp_header), 0);
+            if (bmp_header.signature != 0x4d42) {
+                print("atiebios: wallpaper found, but format is not valid (needs to be a BMP)");
+            } else {
+                print("atiebios: wallpaper found! width: %d height: %d bpp: %d", bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
+                ramfb_set_resolution(bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
+                fw_cfg_dma_read_selector(wallpaper.selector, ramfb_get_framebuffer(), bmp_header.image_size, bmp_header.image_offset);
+            }
         }
     }
     for (;;);
