@@ -13,7 +13,7 @@ struct fw_cfg_file fw_cfg_get_file(const char *filename) {
     fw_cfg_dma_read_selector(FW_CFG_SELECT_ROOT, &entries, sizeof(uint32_t), offset);
     offset += 4;
     entries = bswap32(entries);
-    for (offset; offset < entries * sizeof(struct fw_cfg_file); offset += sizeof(struct fw_cfg_file)) {
+    for (; offset < entries * sizeof(struct fw_cfg_file); offset += sizeof(struct fw_cfg_file)) {
         fw_cfg_dma_read_selector(FW_CFG_SELECT_ROOT, &file, sizeof(struct fw_cfg_file), offset);
         if (!strcmp(file.name, filename)) {
             file.selector = bswap16(file.selector);
@@ -47,10 +47,12 @@ void fw_cfg_dma_read_selector(uint16_t selector, void *buf, int len, int offset)
     access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_SKIP | FW_CFG_DMA_CNT_SELECT);
     access.length = bswap32(offset);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
+    while (access.command & ~FW_CFG_DMA_CNT_ERROR);
     access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_READ);
     access.length = bswap32(len);
     access.address = bswap64((uint64_t) (uint32_t) buf);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
+    while (access.command & ~FW_CFG_DMA_CNT_ERROR);
 }
 
 void fw_cfg_dma_write_selector(uint16_t selector, const void *buf, int len, int offset) {
@@ -59,8 +61,10 @@ void fw_cfg_dma_write_selector(uint16_t selector, const void *buf, int len, int 
     access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_SKIP | FW_CFG_DMA_CNT_SELECT);
     access.length = bswap32(offset);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
+    while (access.command & ~FW_CFG_DMA_CNT_ERROR);
     access.command = bswap32(((uint32_t) selector << 16) | FW_CFG_DMA_CNT_WRITE);
     access.length = bswap32(len);
     access.address = bswap64((uint64_t) (uint32_t) buf);
     outd(FW_CFG_DMA + 4, bswap32((uint32_t) &access));
+    while (access.command & ~FW_CFG_DMA_CNT_ERROR);
 }

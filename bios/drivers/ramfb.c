@@ -28,7 +28,7 @@ void *ramfb_get_framebuffer() {
 void ramfb_set_resolution(int width, int height, int bpp) {
     ramfb.width = bswap32(width);
     ramfb.height = bswap32(height);
-    ramfb.stride = bswap32(width * (bpp / 4));
+    ramfb.stride = bswap32(width * (bpp / 8));
     ramfb.framebuffer = bswap64((uint64_t) (uint32_t) ramfb_get_framebuffer());
     ramfb.flags = 0;
     ramfb.model = bswap32(0x34325241);
