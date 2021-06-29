@@ -1,30 +1,30 @@
 bios_size: equ 0x10000
 bios_main: equ 0xf1800
 smm_main:  equ 0xf0800
-
+gdt_addr:  equ 0x1000
 org 0xf0000
 
 bits 16
 bios_entry:
     cli
 
-    ; Go to protected mode
+    ; Temporary workaround
     mov ax, cs
     mov ds, ax
+    xor ax, ax
+    mov es, ax
+    mov si, gdt
+    mov di, gdt_addr
+    mov cx, gdt.end - gdt
+    rep movsb
 
+    ; Go to protected mode
     lgdt [gdtr]
 
     mov eax, cr0
     or al, 1
     mov cr0, eax
 
-    db 0x66
-    db 0xea
-    dd protected_mode
-    dw 0x08
-
-bits 32
-protected_mode:
     mov ax, 0x10
     mov ds, ax
     mov es, ax
@@ -32,8 +32,8 @@ protected_mode:
     mov gs, ax
     mov ss, ax
     mov esp, 0x2000
-    jmp bios_main
-    hlt
+
+    jmp dword 0x08:bios_main
 
 bits 16
 ; Initial GDT for loading the BIOS, the BIOS will load its own GDT later
@@ -60,7 +60,7 @@ gdt:
 
 gdtr:
     dw gdt.end - gdt - 1
-    dd gdt
+    dd gdt_addr
 
 times 1024 - ($ - $$) db 0x00
 smm_entry_code:
@@ -80,10 +80,7 @@ smm_entry_code:
     mov gs, ax
     mov ss, ax
 
-    db 0x66
-    db 0xea
-    dd smm_main
-    dw 0x08
+    jmp dword 0x08:smm_main
 
 times 1024 - ($ - smm_entry_code) db 0x00
 

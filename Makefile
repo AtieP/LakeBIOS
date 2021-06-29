@@ -24,5 +24,8 @@ $(BIOS): $(OBJS) bios/entry.asm
 run:
 	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio -vga none -device ramfb -fw_cfg "opt/wallpaper",file=wallpaper.bmp
 
+run-kvm:
+	qemu-system-x86_64 -M q35 -no-reboot -bios $(BIOS) -debugcon stdio -vga none -device ramfb -fw_cfg "opt/wallpaper",file=wallpaper.bmp -enable-kvm
+
 clean:
 	rm $(OBJS) cblob.bin $(BIOS)
