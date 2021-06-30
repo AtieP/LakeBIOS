@@ -6,6 +6,7 @@
 #include <drivers/lpc.h>
 #include <drivers/ps2.h>
 #include <drivers/ramfb.h>
+#include <drivers/rtc.h>
 #include <tools/bswap.h>
 #include <tools/print.h>
 #include <tools/string.h>
@@ -85,5 +86,9 @@ void bios_main() {
     if (ps2_mouse_reset() != 0) {
         print("atiebios: PS/2 mouse failed to reset");
     }
+    // Print amount of memory
+    print("atiebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
+    print("atiebios: KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
+    print("atiebios: KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
     for (;;);
 }
