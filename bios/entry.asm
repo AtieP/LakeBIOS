@@ -1,7 +1,12 @@
 bios_size: equ 0x10000
 bios_main: equ 0xf1800
 smm_main:  equ 0xf0800
-gdt_addr:  equ 0x1000
+
+ebda_size: equ 0x2000
+ebda_addr: equ 0xa0000 - ebda_size
+gdt_addr: equ ebda_addr + 1
+stack:    equ ebda_addr + ebda_size
+
 org 0xf0000
 
 bits 16
@@ -11,10 +16,10 @@ bios_entry:
     ; Temporary workaround
     mov ax, cs
     mov ds, ax
-    xor ax, ax
+    mov ax, gdt_addr >> 4
     mov es, ax
     mov si, gdt
-    mov di, gdt_addr
+    mov di, 1
     mov cx, gdt.end - gdt
     rep movsb
 
@@ -31,7 +36,7 @@ bios_entry:
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov esp, 0x2000
+    mov esp, stack
 
     jmp dword 0x08:bios_main
 
