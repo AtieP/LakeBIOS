@@ -4,6 +4,7 @@
 #include <drivers/dram.h>
 #include <drivers/fw_cfg.h>
 #include <drivers/lpc.h>
+#include <drivers/pic.h>
 #include <drivers/ps2.h>
 #include <drivers/ramfb.h>
 #include <drivers/rtc.h>
@@ -90,5 +91,7 @@ void bios_main() {
     print("atiebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
     print("atiebios: KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
     print("atiebios: KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
+    // Enable PIC
+    pic_init(8, 0xa0);
     for (;;);
 }
