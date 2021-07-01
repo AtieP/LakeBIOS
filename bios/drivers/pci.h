@@ -31,6 +31,6 @@ void pci_disable_memory(uint8_t bus, uint8_t slot, uint8_t function);
 void pci_disable_io(uint8_t bus, uint8_t slot, uint8_t function);
 
 void pci_enumerate();
-void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar);
+int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar);
 
 #endif

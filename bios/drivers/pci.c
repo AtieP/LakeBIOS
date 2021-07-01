@@ -65,7 +65,9 @@ static void pci_setup_function(uint8_t bus, uint8_t slot, uint8_t function) {
     // TODO: all the setup it requires...
     // Allocate BARs
     for (int bar = 0; bar <= 6; bar++) {
-        pci_bar_allocate(bus, slot, function, bar);
+        if (pci_bar_allocate(bus, slot, function, bar) == 2) {
+            bar++;
+        }
     }
 }
 
@@ -96,11 +98,12 @@ void pci_enumerate() {
     pci_enumerate_bus(0);
 }
 
-void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
+// Returns: bar kind
+int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     int bar_offset;
     if (bar == 6) {
         // Do not handle expansion ROMs
-        return;
+        return -1;
     } else {
         bar_offset = PCI_CFG_BAR0 + (bar * 4);
     }
@@ -114,10 +117,9 @@ void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
             // 32-bit MMIO BAR
             kind = 0;
         } else if (((bar_original_value >> 1) & 0b11) == 2) {
-            print("atiebios: pci: 64-bit MMIO bar found, skipping because not supported for now");
-            return; // 64-bit MMIO BARs not supported for now
+            kind = 2;
         } else {
-            return; // Invalid MMIO BAR kind, 16-bit MMIO bars are forbidden
+            return -1; // Invalid MMIO BAR kind, 16-bit MMIO bars are forbidden
         }
     }
     uint32_t bar_size;
@@ -133,12 +135,14 @@ void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         bar_size &= ~0b1111;
         bar_size = ~bar_size + 1;
     } else if (kind == 2) {
-        return;
+        bar_size = pci_cfg_read_dword(bus, slot, function, bar_offset);
+        bar_size &= ~0b1111;
+        bar_size = ~bar_size + 1;
     }
     pci_cfg_write_dword(bus, slot, function, bar_offset, bar_original_value);
     // If BAR doesn't exist, size is 0
     if (bar_size == 0) {
-        return;
+        return -1;
     }
     if (kind == 1) {
         pci_cfg_write_dword(bus, slot, function, bar_offset, bar_io_base);
@@ -146,9 +150,13 @@ void pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         pci_enable_io(bus, slot, function);
     } else if (kind == 0) {
         pci_cfg_write_dword(bus, slot, function, bar_offset, bar_mmio_base);
-        bar_mmio_base += bar_size;
+        bar_mmio_base += (bar_size + 4095) & ~4095;
         pci_enable_memory(bus, slot, function);
     } else if (kind == 2) {
-        return;
+        pci_cfg_write_dword(bus, slot, function, bar_offset, bar_mmio_base);
+        pci_cfg_write_dword(bus, slot, function, bar_offset + 4, 0);
+        bar_mmio_base += (bar_size + 4095) & ~4095;
+        pci_enable_memory(bus, slot, function);
     }
+    return kind;
 }
