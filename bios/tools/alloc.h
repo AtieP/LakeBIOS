@@ -3,6 +3,9 @@
 
 #include <stddef.h>
 
-void *malloc(size_t size);
+void alloc_setup();
+void *malloc(size_t size, size_t alignment);
+void *calloc(size_t size, size_t alignment);
+void free(void *base, size_t size);
 
 #endif

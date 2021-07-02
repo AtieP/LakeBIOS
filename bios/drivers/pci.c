@@ -43,13 +43,13 @@ void pci_enable_memory(uint8_t bus, uint8_t slot, uint8_t function) {
     pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_MEM_ENABLE);
 }
 
-void pci_enable_io(uint8_t bus, uint8_t slot, uint8_t function) {
-    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_IO_ENABLE);
-}
-
 void pci_disable_memory(uint8_t bus, uint8_t slot, uint8_t function) {
     pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~PCI_CFG_COMMAND_MEM_ENABLE);
 
+}
+
+void pci_enable_io(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_IO_ENABLE);
 }
 
 void pci_disable_io(uint8_t bus, uint8_t slot, uint8_t function) {
@@ -57,45 +57,43 @@ void pci_disable_io(uint8_t bus, uint8_t slot, uint8_t function) {
 
 }
 
-static void pci_setup_function(uint8_t bus, uint8_t slot, uint8_t function) {
-    uint16_t vendor_id = pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR);
-    if (vendor_id == 0xffff || vendor_id == 0x0000) {
-        return;
-    }
-    // TODO: all the setup it requires...
-    // Allocate BARs
-    for (int bar = 0; bar <= 6; bar++) {
-        if (pci_bar_allocate(bus, slot, function, bar) == 2) {
-            bar++;
-        }
-    }
+void pci_enable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_DMA_ENABLE);
 }
 
-static void pci_enumerate_slot(uint8_t bus, uint8_t slot) {
-    uint16_t vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
-    if (vendor_id == 0xffff || vendor_id == 0x0000) {
-        return;
-    }
-    uint8_t functions;
-    if (pci_cfg_read_byte(bus, slot, 0, PCI_CFG_HEADER) & PCI_CFG_HEADER_MULTIFUNCTION) {
-        functions = 8;
-    } else {
-        functions = 1;
-    }
-    for (uint8_t function = 0; function < functions; function++) {
-        pci_setup_function(bus, slot, function);
-    }
-}
-
-static void pci_enumerate_bus(uint8_t bus) {
-    for (uint8_t slot = 0; slot < 32; slot++) {
-        pci_enumerate_slot(bus, slot);
-    }
+void pci_disable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~PCI_CFG_COMMAND_DMA_ENABLE);
 }
 
 void pci_enumerate() {
     // TODO: if there are more root buses, enumerate them too
-    pci_enumerate_bus(0);
+    // TODO: pci to pci bridges
+    uint16_t vendor_id;
+    for (int bus = 0; bus < 1; bus++) {
+        for (int slot = 0; slot < 32; slot++) {
+            // slot exists?
+            vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
+            if (vendor_id == 0x0000 || vendor_id == 0xffff) {
+                continue;
+            }
+            int functions = 1;
+            if (pci_cfg_read_word(bus, slot, 0, PCI_CFG_HEADER) & PCI_CFG_HEADER_MULTIFUNCTION) {
+                functions = 8;
+            }
+            for (int function = 0; function < functions; function++) {
+                // function exists?
+                vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
+                if (vendor_id == 0x0000 || vendor_id == 0xffff) {
+                    continue;
+                }
+                for (int bar = 0; bar < 6; bar++) {
+                    if (pci_bar_allocate(bus, slot, function, bar) == 2) {
+                        bar++;
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Returns: bar kind
@@ -159,4 +157,57 @@ int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         pci_enable_memory(bus, slot, function);
     }
     return kind;
+}
+
+int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr) {
+    uint16_t vendor_id;
+    for (int bus = 0; bus < 1; bus++) {
+        for (int slot = 0; slot < 32; slot++) {
+            // slot exists?
+            vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
+            if (vendor_id == 0x0000 || vendor_id == 0xffff) {
+                continue;
+            }
+            int functions = 1;
+            if (pci_cfg_read_word(bus, slot, 0, PCI_CFG_HEADER) & PCI_CFG_HEADER_MULTIFUNCTION) {
+                functions = 8;
+            }
+            for (int function = 0; function < functions; function++) {
+                // function exists?
+                vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
+                if (vendor_id == 0x0000 || vendor_id == 0xffff) {
+                    continue;
+                }
+                // the final check
+                if (
+                    pci_cfg_read_byte(bus, slot, function, PCI_CFG_CLASS) == class
+                    && pci_cfg_read_byte(bus, slot, function, PCI_CFG_SUBCLASS) == subclass
+                    && pci_cfg_read_byte(bus, slot, function, PCI_CFG_INTERFACE) == interface
+                ) {
+                    *bus_ptr = bus;
+                    *slot_ptr = slot;
+                    *function_ptr = function;
+                    return 0;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
+    uint32_t bar_val = pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + (bar * 4));
+    if (bar_val & 1) {
+        // I/O bar
+        return (uint64_t) ((uint16_t) bar_val & ~0b11);
+    }
+    if (((bar_val >> 1) & 0b11) == 0) {
+        // 32-bit MMIO bar
+        return (uint64_t) (bar_val & ~0b1111);
+    }
+    if (((bar_val >> 1) & 0b11) == 2) {
+        // 64-bit MMIO bar
+        return ((uint64_t) pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + ((bar + 1) * 4)) << 32) | (bar_val & ~0b1111);
+    }
+    return 0;
 }
