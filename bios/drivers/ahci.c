@@ -49,12 +49,6 @@ int ahci_early_setup() {
 // BIOS initialization for the HBA
 int ahci_setup() {
     // Mechanical presence switch and staggered spinup: false
-    // Implemented ports: depends on the amount of existing ports
-    uint32_t pi = 0;
-    for (int i = 0; i < ahci_available_ports; i++) {
-        pi |= (1 << i);
-    }
-    abar->ghc.ports = pi;
     for (int i = 0; i < ahci_available_ports; i++) {
         // Hot plug capable: false
         // Mechanical presence: false
