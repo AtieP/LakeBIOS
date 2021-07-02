@@ -99,8 +99,9 @@ void bios_main() {
     pic_init(8, 0xa0);
     // AHCI
     if (ahci_detect() == 0) {
-        print("atiebios: AHCI detected!");
-        ahci_setup();
+        if (ahci_early_setup() == 0) {
+            ahci_setup();
+        }
     }
     print("atiebios: POST finished");
     for (;;);

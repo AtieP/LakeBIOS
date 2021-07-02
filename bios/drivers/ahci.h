@@ -78,7 +78,15 @@ struct ahci_fis_dma_setup {
 } __attribute__((__packed__));
 
 struct ahci_fis_hba {
-    uint8_t ignore[256];
+    struct ahci_fis_dma_setup dma_setup;
+    char reserved1[0x20 - 0x1c];
+    struct ahci_fis_pio_setup pio_setup;
+    char reserved2[0x40 - 0x34];
+    struct ahci_fis_d2h d2h;
+    char reserved3[0x58 - 0x54];
+    uint64_t sdbfis;
+    char ufis[0xa0 - 0x60];
+    char reserved[0x100 - 0xa0];
 } __attribute__((__packed__));
 
 struct ahci_prdt {
@@ -90,6 +98,8 @@ struct ahci_prdt {
 
 // CCC: Command Completion Coalescenting
 // EM: Enclosure Management
+#define AHCI_CAP_64 (1 << 31)
+#define AHCI_CAP_SMPS (1 << 28)
 #define AHCI_CAP_SSS (1 << 27)
 #define AHCI_CAP_PORTS_MASK 0b11111
 #define AHCI_CAP_SLOTS_MASK 0b11111
@@ -141,6 +151,7 @@ struct ahci_port {
     uint32_t reserved2[14];
 } __attribute__((__packed__));
 
+#define AHCI_CMD_HDR_FLAGS_W (1 << 6)
 struct ahci_command_hdr {
     uint16_t flags;
     uint16_t prdt_length;
@@ -164,7 +175,8 @@ struct ahci_abar {
 } __attribute__((__packed__));
 
 int ahci_detect();
+int ahci_early_setup();
 int ahci_setup();
-void ahci_send_command(uint8_t command, void *buf, uint64_t lba, int port);
+int ahci_send_command(int port, uint8_t command, void *buf, uint64_t lba, int count, int write);
 
 #endif
