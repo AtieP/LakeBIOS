@@ -165,5 +165,6 @@ struct ahci_abar {
 
 int ahci_detect();
 int ahci_setup();
+void ahci_send_command(uint8_t command, void *buf, uint64_t lba, int port);
 
 #endif

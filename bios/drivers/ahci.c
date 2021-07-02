@@ -12,6 +12,10 @@ static uint8_t ahci_bus;
 static uint8_t ahci_slot;
 static uint8_t ahci_function;
 
+static void ahci_poll_bsy(int port) {
+    while (abar->ports[port].command_status & AHCI_PORT_TFD_STS_BSY);
+}
+
 int ahci_detect() {
     return pci_get_device(AHCI_CLASS, AHCI_SUBCLASS, AHCI_INTERFACE, &ahci_bus, &ahci_slot, &ahci_function);
 }
@@ -68,9 +72,22 @@ int ahci_setup() {
         uint32_t receive_fis = (uint32_t) calloc(sizeof(struct ahci_fis_hba), 256);
         if (!receive_fis) {
             print("atiebios: AHCI: could not allocate receive FIS for port %d, aborting", i);
+            return -1;
         }
         abar->ports[i].fis_addr_low = receive_fis;
         abar->ports[i].fis_addr_hi = 0;
+        // Now set up the command tables
+        for (int j = 0; j < ahci_availabke_cmd_slots; j++) {
+            struct ahci_command_hdr *command_header = (struct ahci_command_hdr *) abar->ports[i].commands_list_addr_hi;
+            command_header += j;
+            uint32_t command_table_low = (uint32_t) calloc(sizeof(struct ahci_command_table), 128);
+            if (!commands_list_addr_low) {
+                print("atiebios: AHCI: could not allocate command table for port %d header %d, aborting", i, j);
+                return -1;
+            }
+            command_header->command_table_low = command_table_low;
+            command_header->command_table_hi = 0;
+        }
         // Enable FIS receives
         abar->ports[i].command_status |= AHCI_PORT_CMD_STS_FRE;
         // Staggered spin up
@@ -84,12 +101,15 @@ int ahci_setup() {
         uint8_t det = abar->ports[i].sata_status & AHCI_PORT_SATA_STS_DET_MASK;
         if (det == 0) {
             print("atiebios: AHCI: no device detected and no communication established in port %d", i);
+            continue;
         } else if (det == 1) {
             print("atiebios: AHCI: device detected but no communication established in port %d", i);
+            continue;
         } else if (det == 3) {
             print("atiebios: AHCI: device detected and connection established in port %d!", i);
         } else if (det == 4) {
             print("atiebios: AHCI: no connection established because the interface is disabled or running in BIST loopback mode in port %d", i);
+            continue;
         }
         // Clear error
         abar->ports[i].sata_error = 0xffffffff;
@@ -101,6 +121,15 @@ int ahci_setup() {
             }
             break;
         }
+        // Enable command engine for this port
+        abar->ports[i].command_status |= AHCI_PORT_CMD_STS_ST;
     }
     return 0;
+}
+
+void ahci_send_command(uint8_t command, void *buf, uint64_t lba, int port) {
+    (void) command;
+    (void) buf;
+    (void) lba;
+    ahci_poll_bsy(port);
 }
