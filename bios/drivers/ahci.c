@@ -56,11 +56,10 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
     // Wait for port to be done doing its things and then disable FIS receive and command execution
     while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR));
-    port->command_status &= (AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
+    port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
     if (port_alloc(abar, index) != 0) {
         return -1;
     }
-    port->command_status |= AHCI_PORT_CMD_STS_FRE; // Otherwise, the status bits get stuck
     if (sss_supported(abar)) {
         // Staggered spinup
         port->command_status |= AHCI_PORT_CMD_STS_SUD;
@@ -73,6 +72,7 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
         port_free(abar, index);
         return -1;
     }
+    port->command_status |= AHCI_PORT_CMD_STS_FRE; // Otherwise, the status bits get stuck
     // Clear errors and wait the device for being ready
     port->sata_error |= port->sata_error;
     for (volatile int i = 0; i < 1000; i++) {
