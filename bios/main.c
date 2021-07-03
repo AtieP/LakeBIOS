@@ -98,11 +98,7 @@ void bios_main() {
     // Enable PIC
     pic_init(8, 0xa0);
     // AHCI
-    if (ahci_detect() == 0) {
-        if (ahci_early_setup() == 0) {
-            ahci_setup();
-        }
-    }
+    ahci_init();
     print("atiebios: POST finished");
     for (;;);
 }

@@ -174,9 +174,6 @@ struct ahci_abar {
     struct ahci_port ports[32];
 } __attribute__((__packed__));
 
-int ahci_detect();
-int ahci_early_setup();
-int ahci_setup();
-int ahci_send_command(int port, uint8_t command, void *buf, uint64_t lba, int count, int write);
+void ahci_init();
 
 #endif

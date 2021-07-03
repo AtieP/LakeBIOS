@@ -159,8 +159,9 @@ int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     return kind;
 }
 
-int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr) {
+int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, size_t index) {
     uint16_t vendor_id;
+    size_t counter = 0;
     for (int bus = 0; bus < 1; bus++) {
         for (int slot = 0; slot < 32; slot++) {
             // slot exists?
@@ -184,10 +185,14 @@ int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *
                     && pci_cfg_read_byte(bus, slot, function, PCI_CFG_SUBCLASS) == subclass
                     && pci_cfg_read_byte(bus, slot, function, PCI_CFG_INTERFACE) == interface
                 ) {
-                    *bus_ptr = bus;
-                    *slot_ptr = slot;
-                    *function_ptr = function;
-                    return 0;
+                    if (counter == index) {
+                        *bus_ptr = bus;
+                        *slot_ptr = slot;
+                        *function_ptr = function;
+                        return 0;
+                    } else {
+                        counter++;
+                    }
                 }
             }
         }

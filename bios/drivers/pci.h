@@ -1,6 +1,7 @@
 #ifndef __DRIVERS_PCI_H__
 #define __DRIVERS_PCI_H__
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define PCI_CFG_ADDRESS 0xcf8
@@ -38,7 +39,7 @@ void pci_disable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function);
 
 void pci_enumerate();
 int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar);
-int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr);
+int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, size_t index);
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar);
 
 #endif
