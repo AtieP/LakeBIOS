@@ -21,7 +21,7 @@ struct ahci_fis_h2d {
     uint8_t lba5;
     uint8_t features_hi;
     uint8_t count_low;
-    uint8_t count_high;
+    uint8_t count_hi;
     uint8_t icc;
     uint8_t control;
     char reserved[4];
@@ -152,20 +152,22 @@ struct ahci_port {
 } __attribute__((__packed__));
 
 #define AHCI_CMD_HDR_FLAGS_W (1 << 6)
+#define AHCI_CMD_HDR_FLAGS_ATAPI (1 << 5)
+#define AHCI_CMD_HDR_FLAGS_PRDTL_SHIFT 16
 struct ahci_command_hdr {
-    uint16_t flags;
-    uint16_t prdt_length;
+    uint32_t flags;
     uint32_t prdt_count;
     uint32_t command_table_low;
     uint32_t command_table_hi;
-    char reserved[0x20 - 0x10];
+    uint32_t reserved[4];
 } __attribute__((__packed__));
 
-struct ahci_command_table {
+struct ahci_command_tbl {
     struct ahci_fis_h2d command_fis;
-    char atapi_command[16];
-    char reserved[0x80 - 0x50];
-    struct ahci_prdt prdt[1];
+    char gap[64 - sizeof(struct ahci_fis_h2d)];
+    char atapi[16];
+    char reserved[48];
+    struct ahci_prdt prdt[];
 } __attribute__((__packed__));
 
 struct ahci_abar {
@@ -175,5 +177,5 @@ struct ahci_abar {
 } __attribute__((__packed__));
 
 void ahci_init();
-
+int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, uint64_t lba, int len, int write, int atapi);
 #endif

@@ -65,6 +65,14 @@ void pci_disable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function) {
     pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~PCI_CFG_COMMAND_DMA_ENABLE);
 }
 
+void pci_enable_interrupts(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~PCI_CFG_COMMAND_INT_DISABLE);
+}
+
+void pci_disable_interrupts(uint8_t bus, uint8_t slot, uint8_t function) {
+    pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_INT_DISABLE);
+}
+
 void pci_enumerate() {
     // TODO: if there are more root buses, enumerate them too
     // TODO: pci to pci bridges

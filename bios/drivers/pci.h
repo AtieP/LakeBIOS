@@ -19,6 +19,7 @@
 #define PCI_CFG_COMMAND_IO_ENABLE (1 << 0)
 #define PCI_CFG_COMMAND_MEM_ENABLE (1 << 1)
 #define PCI_CFG_COMMAND_DMA_ENABLE (1 << 2)
+#define PCI_CFG_COMMAND_INT_DISABLE (1 << 10)
 
 #define PCI_CFG_HEADER_MULTIFUNCTION (1 << 7)
 
@@ -36,6 +37,8 @@ void pci_enable_io(uint8_t bus, uint8_t slot, uint8_t function);
 void pci_disable_io(uint8_t bus, uint8_t slot, uint8_t function);
 void pci_enable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function);
 void pci_disable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function);
+void pci_enable_interrupts(uint8_t bus, uint8_t slot, uint8_t function);
+void pci_disable_interrupts(uint8_t bus, uint8_t slot, uint8_t function);
 
 void pci_enumerate();
 int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar);
