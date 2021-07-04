@@ -7,6 +7,7 @@
 #define AHCI_SUBCLASS 0x06
 #define AHCI_INTERFACE 0x01
 
+#define AHCI_FIS_H2D 0x27
 struct ahci_fis_h2d {
     uint8_t fis_kind;
     uint8_t flags;
@@ -177,5 +178,5 @@ struct ahci_abar {
 } __attribute__((__packed__));
 
 void ahci_init();
-int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, uint64_t lba, int len, int write, int atapi);
+int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi);
 #endif

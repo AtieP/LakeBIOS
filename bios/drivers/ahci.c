@@ -138,7 +138,7 @@ void ahci_init() {
     print("atiebios: AHCI: finished initializing controllers");
 }
 
-int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, uint64_t lba, int len, int write, int atapi) {
+int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi) {
     if (atapi) {
         return -1; // todo: support it later
     }
@@ -153,18 +153,20 @@ int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t comman
     if (!cmd_tbl) {
         return -1;
     }
-    cmd_tbl->command_fis.fis_kind = 0x27; // H2D
+    cmd_tbl->command_fis.fis_kind = AHCI_FIS_H2D; // H2D
     cmd_tbl->command_fis.flags = 1 << 7;
     cmd_tbl->command_fis.command = command;
-    cmd_tbl->command_fis.lba0 = (uint8_t) lba;
-    cmd_tbl->command_fis.lba1 = (uint8_t) (lba >> 8);
-    cmd_tbl->command_fis.lba2 = (uint8_t) (lba >> 16);
-    cmd_tbl->command_fis.device = (1 << 6) | 0xa0;
-    cmd_tbl->command_fis.lba3 = (uint8_t) (lba >> 24);
-    cmd_tbl->command_fis.lba4 = (uint8_t) (lba >> 32);
-    cmd_tbl->command_fis.lba5 = (uint8_t) (lba >> 48);
-    cmd_tbl->command_fis.count_low = (uint8_t) (len / 512);
-    cmd_tbl->command_fis.count_hi = (uint8_t) ((len / 512) >> 8);
+    if (lba != -1) {
+        cmd_tbl->command_fis.lba0 = (uint8_t) lba;
+        cmd_tbl->command_fis.lba1 = (uint8_t) (lba >> 8);
+        cmd_tbl->command_fis.lba2 = (uint8_t) (lba >> 16);
+        cmd_tbl->command_fis.device = (1 << 6) | 0xa0;
+        cmd_tbl->command_fis.lba3 = (uint8_t) (lba >> 24);
+        cmd_tbl->command_fis.lba4 = (uint8_t) (lba >> 32);
+        cmd_tbl->command_fis.lba5 = (uint8_t) (lba >> 48);
+        cmd_tbl->command_fis.count_low = (uint8_t) (len / 512);
+        cmd_tbl->command_fis.count_hi = (uint8_t) ((len / 512) >> 8);
+    }
     cmd_tbl->prdt[0].data_addr_low = (uint32_t) buf;
     cmd_tbl->prdt[0].data_addr_hi = 0;
     cmd_tbl->prdt[0].description = len - 1;
