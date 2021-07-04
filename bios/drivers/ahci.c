@@ -139,7 +139,6 @@ void ahci_init() {
 }
 
 int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, uint64_t lba, int len, int write, int atapi) {
-    print("\n\n\nREAD\n\n\n");
     if (atapi) {
         return -1; // todo: support it later
     }
