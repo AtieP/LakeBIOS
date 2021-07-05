@@ -5,6 +5,7 @@
 #include <drivers/dram.h>
 #include <drivers/fw_cfg.h>
 #include <drivers/lpc.h>
+#include <drivers/nvme.h>
 #include <drivers/pic.h>
 #include <drivers/ps2.h>
 #include <drivers/ramfb.h>
@@ -99,6 +100,8 @@ void bios_main() {
     pic_init(8, 0xa0);
     // AHCI
     ahci_init();
+    // NVME
+    nvme_init();
     print("atiebios: POST finished");
     for (;;);
 }

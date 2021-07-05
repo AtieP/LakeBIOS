@@ -8,6 +8,8 @@ Firmware for the ICH9 chipset. Meant to be ran in emulators, specially QEMU.
 - PCI enumeration and BAR allocation
 - PCI ECAM
 - ramfb (a very simple framebuffer interface) 
+- AHCI
+- NVME
 
 # Testing
 `make all run`
