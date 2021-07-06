@@ -94,9 +94,6 @@ int nvme_command(
     volatile struct nvme_submission_entry *sq, volatile struct nvme_completion_entry *cq,
     int id, uint32_t *tail_ptr, uint32_t *head_ptr
 ) {
-    // TODO:
-    // Poll for completion
-    (void) cq;
     uint32_t tail = *tail_ptr;
     uint32_t head = *head_ptr;
     uint32_t stride = get_dstrd(cfg);
@@ -104,11 +101,20 @@ int nvme_command(
     volatile uint32_t *c_head_doorbell = (volatile uint32_t *) ((uintptr_t) cfg + 0x1000 + (2 * id + 1) * (4 << stride));
     sq += tail;
     memcpy((void *) sq, command, sizeof(struct nvme_submission_entry));
-    // trigger command
+    // Trigger command
     if (++tail == ENTRIES) {
         tail = 0;
     }
     *s_tail_doorbell = tail;
+    // Wait for completion, basically it is impossible
+    // to have the status field clear, and if a command
+    // has been completed successfully, the 0th bit is set,
+    // otherwise some other bit
+    while (!(cq[head].status & 1));
+    // Check if an error happened
+    if (cq[head].status >> 1) {
+        return -1;
+    }
     if (++head == ENTRIES) {
         head = 0;
     }
