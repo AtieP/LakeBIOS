@@ -4,12 +4,17 @@
 #include <stdint.h>
 
 #define SMM_DEFAULT_SMBASE 0x30000
-#define SMM_Q35_SMBASE 0xa0000
+#define SMM_NEW_SMBASE 0xa0000
 #define SMM_SMBASE_HANDLER_OFFSET 0x8000
 #define SMM_SMBASE_STATE_OFFSET 0xfe00
 
 #define SMM_REV_32 0x20000
 #define SMM_REV_64 0x20064
+
+extern char smm_entry_code_start[];
+extern char smm_entry_code_end[];
+extern char bios_code_start[];
+extern char bios_code_end[];
 
 // Most of the "reserved" registers here aren't actually reserved.
 // Apparently, the SMM layout between Intel and AMD processors differ.
@@ -58,7 +63,5 @@ struct smm_state {
         } __attribute__((__packed__)) regs64;
     } registers;
 } __attribute__((__packed__));
-
-void smm_init();
 
 #endif

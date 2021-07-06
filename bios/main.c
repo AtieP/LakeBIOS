@@ -1,10 +1,10 @@
+#include <chipsets/i440fx.h>
+#include <chipsets/q35.h>
 #include <cpu/gdt.h>
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <drivers/ahci.h>
-#include <drivers/dram.h>
 #include <drivers/fw_cfg.h>
-#include <drivers/lpc.h>
 #include <drivers/nvme.h>
 #include <drivers/pic.h>
 #include <drivers/ps2.h>
@@ -35,14 +35,19 @@ struct {
 
 __attribute__((__section__(".c_init"), used))
 void bios_main() {
-    dram_unlock_bios();
+    // Chipset specific setup first, first detect what chipset running on
+    uint16_t chipset_vendor = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
+    uint16_t chipset_device = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);
+    if (chipset_vendor == Q35_DRAM_VENDOR && chipset_device == Q35_DRAM_DEVICE) {
+        q35_init();
+    } else if (chipset_vendor == I440FX_PMC_VENDOR && chipset_device == I440FX_PMC_DEVICE) {
+        i440fx_init();
+    } else {
+        print("Sorry, chipset with host bridge vendor %x device %x not supported", chipset_vendor, chipset_device);
+        for (;;);
+    }
     gdt_craft();
     gdt_reload();
-    smm_init();
-    pci_enumerate();
-    dram_set_tolud(0xb0000000);
-    dram_set_pciexbar(0xb0000000);
-    dram_enable_pciexbar();
     if (ramfb_detect() == 0) {
         print("atiebios: ramfb detected!");
         struct fw_cfg_file wallpaper = fw_cfg_get_file("opt/wallpaper");

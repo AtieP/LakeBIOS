@@ -2,9 +2,6 @@
 #include <drivers/pci.h>
 #include <tools/print.h>
 
-static uintptr_t bar_mmio_base = 0xc0000000;
-static uint16_t bar_io_base = 0xc000;
-
 static void send_address(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset) {
     outd(PCI_CFG_ADDRESS, 0x80000000 | (bus << 16) | (slot << 11) | (function << 8) | (offset & 0xfc));
 }
@@ -73,7 +70,7 @@ void pci_disable_interrupts(uint8_t bus, uint8_t slot, uint8_t function) {
     pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_INT_DISABLE);
 }
 
-void pci_enumerate() {
+void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base) {
     // TODO: if there are more root buses, enumerate them too
     // TODO: pci to pci bridges
     uint16_t vendor_id;
@@ -95,7 +92,7 @@ void pci_enumerate() {
                     continue;
                 }
                 for (int bar = 0; bar < 6; bar++) {
-                    if (pci_bar_allocate(bus, slot, function, bar) == 2) {
+                    if (pci_bar_allocate(bus, slot, function, bar, mmio_base, io_base) == 2) {
                         bar++;
                     }
                 }
@@ -105,8 +102,16 @@ void pci_enumerate() {
 }
 
 // Returns: bar kind
-int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
+int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar, uintptr_t mmio_base, uintptr_t io_base) {
     int bar_offset;
+    static uintptr_t bar_mmio_base = 0;
+    static uintptr_t bar_io_base = 0;
+    if (bar_mmio_base == 0) {
+        bar_mmio_base = mmio_base;
+    }
+    if (bar_io_base == 0) {
+        bar_io_base = io_base;
+    }
     if (bar == 6) {
         // Do not handle expansion ROMs
         return -1;

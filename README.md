@@ -1,13 +1,10 @@
 # AtieBIOS
-Firmware for the ICH9 chipset. Meant to be ran in emulators, specially QEMU.
+Firmware for I440FX and Q35. Meant to be ran in emulators, specially QEMU.
 
-# Achievements
-- BIOS shadowing/unshadowing by manipulating the DRAM's PAM registers
-- Enabling ACPI base register using the LPC
-- SMM handling
-- PCI enumeration and BAR allocation
-- PCI ECAM
-- ramfb (a very simple framebuffer interface) 
+# Features
+- SMM
+- ramfb
+- PIC, PS/2, Memory dectection
 - AHCI
 - NVME
 
