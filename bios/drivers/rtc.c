@@ -11,6 +11,14 @@ void rtc_write(uint8_t index, uint8_t data) {
     outb(RTC_DATA, data);
 }
 
+uint8_t rtc_get_floppy_master_kind() {
+    return (rtc_read(CMOS_FLOPPY) & 0b11110000) >> 4;
+}
+
+uint8_t rtc_get_floppy_slave_kind() {
+    return rtc_read(CMOS_FLOPPY) & 0b1111;
+}
+
 int rtc_get_low_mem() {
     return (int) (((uint16_t) rtc_read(CMOS_LOWMEM_HI) << 8) | rtc_read(CMOS_LOWMEM_LO)) * 1024;
 }

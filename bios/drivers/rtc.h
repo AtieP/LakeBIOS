@@ -8,6 +8,14 @@
 
 #define NMI_BIT (1 << 7)
 
+#define CMOS_FLOPPY 0x10
+#define CMOS_FLOPPY_NO 0x00
+#define CMOS_FLOPPY_360 0x01
+#define CMOS_FLOPPY_1200 0x02
+#define CMOS_FLOPPY_720 0x03
+#define CMOS_FLOPPY_1440 0x04
+#define CMOS_FLOPPY_2880 0x05
+
 // Low memory: memory between 0M and 1M
 #define CMOS_LOWMEM_LO 0x15
 #define CMOS_LOWMEM_HI 0x16
@@ -23,6 +31,8 @@
 uint8_t rtc_read(uint8_t index);
 void rtc_write(uint8_t index, uint8_t data);
 
+uint8_t rtc_get_floppy_master_kind();
+uint8_t rtc_get_floppy_slave_kind();
 int rtc_get_low_mem();
 int rtc_get_ext1_mem();
 int rtc_get_ext2_mem();

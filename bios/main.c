@@ -4,6 +4,7 @@
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <drivers/ahci.h>
+#include <drivers/floppy.h>
 #include <drivers/fw_cfg.h>
 #include <drivers/nvme.h>
 #include <drivers/pic.h>
@@ -107,6 +108,8 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
+    // Floppies
+    floppy_init();
     print("atiebios: POST finished");
     for (;;);
 }
