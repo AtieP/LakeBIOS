@@ -1,3 +1,4 @@
+#include <hal.h>
 #include <chipsets/i440fx.h>
 #include <chipsets/q35.h>
 #include <cpu/gdt.h>

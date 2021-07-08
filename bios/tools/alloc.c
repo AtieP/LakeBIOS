@@ -1,10 +1,11 @@
 #include <stdint.h>
 #include <drivers/rtc.h>
 #include <tools/alloc.h>
+#include <tools/print.h>
 #include <tools/string.h>
 
 #define OBJECT_SIZE 32
-#define HEAP_SIZE 16384
+#define HEAP_SIZE (16384 * 4)
 
 // Simple bitmap allocator, object size is 32 bytes
 #define BIT_SET(__bit) (bitmap[(__bit) / 8] |= (1 << ((__bit) % 8)))
@@ -20,6 +21,10 @@ void alloc_setup() {
 }
 
 void *malloc(size_t size, size_t alignment) {
+    if (!size) {
+        print("lakebios: tried to allocate a zone with a 0 size, ignoring");
+        return NULL;
+    }
     // Round size to 32
     if (size % 32) {
         size = (size + OBJECT_SIZE - 1) & ~(OBJECT_SIZE - 1);
@@ -50,6 +55,26 @@ void *malloc(size_t size, size_t alignment) {
     return NULL;
 }
 
+void *realloc(void *old, size_t oldsize, size_t newsize, size_t alignment) {
+    if (!old && !newsize) {
+        return NULL;
+    }
+    if (!newsize) {
+        free(old, oldsize);
+        return NULL;
+    }
+    if (!old) {
+        return malloc(newsize, alignment);
+    }
+    void *ret = malloc(newsize, alignment);
+    if (!ret) {
+        return NULL;
+    }
+    memcpy(ret, old, oldsize);
+    free(old, oldsize);
+    return ret;
+}
+
 void *calloc(size_t size, size_t alignment) {
     void *ret = malloc(size, alignment);
     if (ret) {
@@ -59,7 +84,13 @@ void *calloc(size_t size, size_t alignment) {
 }
 
 void free(void *base, size_t size) {
-    size = (size + OBJECT_SIZE - 1) & ~(OBJECT_SIZE - 1);
+    if (!size) {
+        print("lakebios: tried to free a zone with 0 size, ignoring");
+        return;
+    }
+    if (size % 32) {
+        size = (size + OBJECT_SIZE - 1) & ~(OBJECT_SIZE - 1);
+    }
     size_t pages = size / OBJECT_SIZE;
     for (size_t i = 0; i < pages; i++, base += OBJECT_SIZE) {
         BIT_CLEAR(((uintptr_t) base - alloc_base) / OBJECT_SIZE);

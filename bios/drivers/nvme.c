@@ -1,3 +1,4 @@
+#include <hal.h>
 #include <stddef.h>
 #include <drivers/nvme.h>
 #include <drivers/pci.h>
@@ -19,6 +20,7 @@ static int get_mpsmin(volatile struct nvme_configuration *cfg) {
 }
 
 static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_function) {
+    int not_initialized_namespaces = 0;
     pci_enable_bus_mastering(nvme_bus, nvme_slot, nvme_function);
     volatile struct nvme_configuration *cfg = (volatile struct nvme_configuration *) (uintptr_t) pci_get_bar(nvme_bus, nvme_slot, nvme_function, 0);
     if (!cfg) {
@@ -65,8 +67,113 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
             return -1;
         }
     }
-    // TODO: IDENTIFY, I/O queues for sending reads and writes
-    return 0;
+    // Identify how many drives there are connected, create IO queues for them
+    // and register them on the disk HAL
+    void *controller_identify_buffer = calloc(4096, alignment);
+    if (!controller_identify_buffer) {
+        return -1;
+    }
+    uint32_t head = 0;
+    uint32_t tail = 0;
+    uint32_t namespaces;
+    // Get amount of namespaces
+    struct nvme_submission_entry cmd;
+    memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+    cmd.opcode = NVME_CMD_ADMIN_ID;
+    cmd.prp1 = (uint64_t) (uintptr_t) controller_identify_buffer;
+    cmd.cmd_specific[0] = NVME_CMD_ADMIN_ID_CONTROLLER;
+    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
+        free(controller_identify_buffer, 4096);
+        return -1;
+    }
+    namespaces = *((uint32_t *) (controller_identify_buffer + 516));
+    free(controller_identify_buffer, 4096);
+    // Allocate buffer for the namespaces list
+    void *namespaces_identify_buffer = calloc(sizeof(uint32_t) * namespaces, alignment);
+    if (!namespaces_identify_buffer) {
+        return -1;
+    }
+    // Get the namespaces list and identify each one of the namespaces
+    memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+    cmd.opcode = NVME_CMD_ADMIN_ID;
+    cmd.prp1 = (uint64_t) (uintptr_t) namespaces_identify_buffer;
+    cmd.cmd_specific[0] = NVME_CMD_ADMIN_ID_NAMESPACES;
+    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
+        free(namespaces_identify_buffer, 4096);
+        return -1;
+    }
+    void *namespace_identify_buffer = calloc(4096, alignment);
+    if (!namespace_identify_buffer) {
+        return -1;
+    }
+    // Identify each one of the namespaces, create IO queues for them, and register them in the HAL
+    for (size_t i = 0; i < namespaces; i++) {
+        uint32_t namespace_id = *((uint32_t *) namespaces_identify_buffer + i);
+        if (!namespace_id) {
+            continue;
+        }
+        // Identify namespace (todo: actually extract the useful info)
+        memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+        cmd.opcode = NVME_CMD_ADMIN_ID;
+        cmd.prp1 = (uint64_t) (uintptr_t) namespace_identify_buffer;
+        cmd.cmd_specific[0] = NVME_CMD_ADMIN_ID_NAMESPACE;
+        cmd.namespace_id = namespace_id;
+        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
+            not_initialized_namespaces++;
+            continue;
+        }
+        // Allocate IO queues
+        uint64_t io_completion_queue = (uint64_t) (uintptr_t) calloc(ENTRIES * 16, alignment);
+        if (!io_completion_queue) {
+            not_initialized_namespaces++;
+            continue;
+        }
+        uint64_t io_submission_queue = (uint64_t) (uintptr_t) calloc(ENTRIES * 16, alignment);
+        if (!io_submission_queue) {
+            free((void *) (uintptr_t) io_completion_queue, ENTRIES * 16);
+            not_initialized_namespaces++;
+            continue;
+        }
+        // For us, namespace id == queue id
+        // Set the IO completion queue
+        memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+        cmd.opcode = NVME_CMD_ADMIN_CREATE_ICQ;
+        cmd.prp1 = io_completion_queue;
+        cmd.cmd_specific[0] = ((ENTRIES * 16 - 1) << 16) | namespace_id;
+        cmd.cmd_specific[1] = 1 << 0; // Physically contiguous
+        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
+            free((void *) (uintptr_t) io_completion_queue, ENTRIES * 16);
+            free((void *) (uintptr_t) io_submission_queue, ENTRIES * 16);
+            not_initialized_namespaces++;
+            continue;
+        }
+        // Set the IO submission queue
+        memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+        cmd.opcode = NVME_CMD_ADMIN_CREATE_ISQ;
+        cmd.prp1 = io_submission_queue;
+        cmd.cmd_specific[0] = ((ENTRIES * 16 - 1) << 16) | namespace_id;
+        cmd.cmd_specific[1] = (namespace_id << 16) | (1 << 0);
+        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
+            free((void *) (uintptr_t) io_submission_queue, ENTRIES * 16);
+            not_initialized_namespaces++;
+            continue;
+        }
+        // Submit to the HAL
+        struct disk_abstract disk;
+        disk.interface = HAL_DISK_NVME;
+        disk.common.lba_max = 1;
+        disk.specific.nvme.cfg = cfg;
+        disk.specific.nvme.namespace_id = namespace_id;
+        disk.specific.nvme.sq = (volatile struct nvme_submission_entry *) (uintptr_t) io_submission_queue;
+        disk.specific.nvme.cq = (volatile struct nvme_completion_entry *) (uintptr_t) io_completion_queue;
+        disk.specific.nvme.queue_id = namespace_id;
+        disk.specific.nvme.head = 0;
+        disk.specific.nvme.tail = 0;
+        hal_disk_submit(&disk);
+    }
+    free(namespaces_identify_buffer, 4096);
+    free(namespace_identify_buffer, 4096);
+    return not_initialized_namespaces;
 }
 
 void nvme_init() {
@@ -77,10 +184,13 @@ void nvme_init() {
         uint8_t nvme_function;
         if (pci_get_device(NVME_CLASS, NVME_SUBCLASS, NVME_INTERFACE, &nvme_bus, &nvme_slot, &nvme_function, i) == 0) {
             print("lakebios: NVME: controller found at bus %d slot %d function %d", nvme_bus, nvme_slot, nvme_function);
-            if (controller_init(nvme_bus, nvme_slot, nvme_function) == -1) {
-                print("lakebios: NVME: controller mentioned before has not been initialized successfully");
+            int ret = controller_init(nvme_bus, nvme_slot, nvme_function);
+            if (ret == -1) {
+                print("lakebios: NVME: error during initializing the controller mentioned before. Caused by an allocation failure, or a controller error.");
+            } else if (ret == 0) {
+                print("lakebios: NVME: success during initializing the controller mentioned before");
             } else {
-                print("lakebios: NVME: controller mentioned before has been initialized successfully");
+                print("lakebios: NVME: success during initializing the controller mentioned before, but %d namespaces were not set up. Caused by an allocation failure, or controller error.");
             }
         } else {
             break;

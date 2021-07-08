@@ -138,7 +138,7 @@ void ahci_init() {
     print("lakebios: AHCI: finished initializing controllers");
 }
 
-int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi) {
+int ahci_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi) {
     if (atapi) {
         return -1; // todo: support it later
     }

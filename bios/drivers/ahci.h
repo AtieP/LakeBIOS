@@ -178,5 +178,6 @@ struct ahci_abar {
 } __attribute__((__packed__));
 
 void ahci_init();
-int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi);
+int ahci_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi);
+
 #endif
