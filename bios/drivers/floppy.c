@@ -47,30 +47,30 @@ static int floppy_setup(uint16_t io_base, uint8_t kind) {
 }
 
 void floppy_init() {
-    print("atiebios: floppy: initializing floppies");
+    print("lakebios: floppy: initializing floppies");
     uint8_t master_kind = rtc_get_floppy_master_kind();
     if (master_kind) {
-        print("atiebios: floppy: found a %s in the master slot, initializing", kind_to_name(master_kind));
+        print("lakebios: floppy: found a %s in the master slot, initializing", kind_to_name(master_kind));
         if (floppy_setup(FLOPPY_BASE_MASTER, master_kind) != 0) {
-            print("atiebios: floppy: master floppy has not been initialized successfully");
+            print("lakebios: floppy: master floppy has not been initialized successfully");
         } else {
-            print("atiebios: floppy: master floppy has been initialized successfully");
+            print("lakebios: floppy: master floppy has been initialized successfully");
         }
     } else {
-        print("atiebios: floppy: no master floppy found");
+        print("lakebios: floppy: no master floppy found");
     }
     uint8_t slave_kind = rtc_get_floppy_slave_kind();
     if (slave_kind) {
-        print("atiebios: floppy: found a %s in the slave slot, initializing", kind_to_name(slave_kind));
+        print("lakebios: floppy: found a %s in the slave slot, initializing", kind_to_name(slave_kind));
         if (floppy_setup(FLOPPY_BASE_SLAVE, slave_kind) != 0) {
-            print("atiebios: floppy: slave floppy has not been initialized successfully");
+            print("lakebios: floppy: slave floppy has not been initialized successfully");
         } else {
-            print("atiebios: floppy: slave floppy has been initialized successfully");
+            print("lakebios: floppy: slave floppy has been initialized successfully");
         }
     } else {
-        print("atiebios: floppy: no slave floppy found");
+        print("lakebios: floppy: no slave floppy found");
     }
-    print("atiebios: floppy: finished initializing floppies");
+    print("lakebios: floppy: finished initializing floppies");
 }
 
 // Note: following code might not work in real hardware. QEMU's floppy interface is much better than real hardware
@@ -79,7 +79,7 @@ int floppy_command(uint16_t io_base, uint8_t command, uint8_t *input, int input_
     int failed = 0;
 main_procedure:
     if (failed) {
-        print("atiebios: floppy: sending command %x failed, trying again...", command);
+        print("lakebios: floppy: sending command %x failed, trying again...", command);
     }
     uint8_t msr;
     msr = inb(io_base + FLOPPY_MSR);

@@ -1,4 +1,4 @@
-# AtieBIOS
+# lakebios
 Firmware for I440FX and Q35. Meant to be ran in emulators, specially QEMU.
 
 # Features

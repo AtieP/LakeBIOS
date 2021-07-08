@@ -59,7 +59,7 @@ void i440fx_pmc_smram_base(uint8_t base) {
 }
 
 void i440fx_init() {
-    print("atiebios: I440FX: chipset found, initializing chipset specific features");
+    print("lakebios: I440FX: chipset found, initializing chipset specific features");
     i440fx_pmc_unshadow_bios();
     // SMM setup
     i440fx_pmc_smram_enable();
@@ -77,5 +77,5 @@ void i440fx_init() {
     // Relocate SMBASE
     outb(0xb2, 0x01);
     pci_enumerate(I440FX_PCI_MMIO_BASE, I440FX_PCI_IO_BASE);
-    print("atiebios: I440FX: finished initializing chipset specific features");
+    print("lakebios: I440FX: finished initializing chipset specific features");
 }

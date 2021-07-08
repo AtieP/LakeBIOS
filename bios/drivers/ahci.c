@@ -38,13 +38,13 @@ static int port_alloc(volatile struct ahci_abar *abar, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
     uint32_t command_list = (uint32_t) calloc(sizeof(struct ahci_command_hdr) * get_slots(abar), 1024);
     if (!command_list) {
-        print("atiebios: AHCI: could not allocate command list for port %d", port);
+        print("lakebios: AHCI: could not allocate command list for port %d", port);
         return -1;
     }
     uint32_t receive_fis = (uint32_t) calloc(sizeof(struct ahci_fis_hba), 256);
     if (!command_list) {
         free((void *) command_list, sizeof(struct ahci_command_hdr) * get_slots(abar));
-        print("atiebios: AHCI: could not allocate receive FIS for port %d", port);
+        print("lakebios: AHCI: could not allocate receive FIS for port %d", port);
         return -1;
     }
     port->commands_list_addr_low = command_list;
@@ -108,9 +108,9 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
     for (int i = 0; i < get_ports_silicon(abar); i++) {
         if (port_implemented(abar, i)) {
             if (port_init(abar, i) == 0) {
-                print("atiebios: AHCI: port %d initialized successfully", i);
+                print("lakebios: AHCI: port %d initialized successfully", i);
             } else {
-                print("atiebios: AHCI: port %d could not be initialized", i);
+                print("lakebios: AHCI: port %d could not be initialized", i);
             }
         }
     }
@@ -118,24 +118,24 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
 }
 
 void ahci_init() {
-    print("atiebios: AHCI: initializing controllers");
+    print("lakebios: AHCI: initializing controllers");
     size_t i;
     for (i = 0; i < SIZE_MAX; i++) {
         uint8_t ahci_bus;
         uint8_t ahci_slot;
         uint8_t ahci_function;
         if (pci_get_device(AHCI_CLASS, AHCI_SUBCLASS, AHCI_INTERFACE, &ahci_bus, &ahci_slot, &ahci_function, i) == 0) {
-            print("atiebios: AHCI: controller found at bus %d slot %d function %d", ahci_bus, ahci_slot, ahci_function);
+            print("lakebios: AHCI: controller found at bus %d slot %d function %d", ahci_bus, ahci_slot, ahci_function);
             if (controller_init(ahci_bus, ahci_slot, ahci_function) == -1) {
-                print("atiebios: AHCI: controller mentioned before has not been initialized successfully");
+                print("lakebios: AHCI: controller mentioned before has not been initialized successfully");
             } else {
-                print("atiebios: AHCI: controller mentioned before has been initialized successfully");
+                print("lakebios: AHCI: controller mentioned before has been initialized successfully");
             }
         } else {
             break;
         }
     }
-    print("atiebios: AHCI: finished initializing controllers");
+    print("lakebios: AHCI: finished initializing controllers");
 }
 
 int ahci_send_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi) {

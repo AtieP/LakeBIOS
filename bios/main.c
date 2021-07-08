@@ -50,10 +50,10 @@ void bios_main() {
     gdt_craft();
     gdt_reload();
     if (ramfb_detect() == 0) {
-        print("atiebios: ramfb detected!");
+        print("lakebios: ramfb detected!");
         struct fw_cfg_file wallpaper = fw_cfg_get_file("opt/wallpaper");
         if (wallpaper.selector == 0) {
-            print("atiebios: no wallpaper found at fw_cfg opt/wallpaper, filling the screen with a color");
+            print("lakebios: no wallpaper found at fw_cfg opt/wallpaper, filling the screen with a color");
             ramfb_set_resolution(1024, 768, 32);
             uint32_t *framebuffer = (uint32_t *) ramfb_get_framebuffer();
             for (int i = 0; i < 1024 * 768 * 2; i++) {
@@ -62,9 +62,9 @@ void bios_main() {
         } else {
             fw_cfg_dma_read_selector(wallpaper.selector, &bmp_header, sizeof(bmp_header), 0);
             if (bmp_header.signature != 0x4d42) {
-                print("atiebios: wallpaper found, but format is not valid (needs to be a BMP)");
+                print("lakebios: wallpaper found, but format is not valid (needs to be a BMP)");
             } else {
-                print("atiebios: wallpaper found! width: %d height: %d bpp: %d", bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
+                print("lakebios: wallpaper found! width: %d height: %d bpp: %d", bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
                 ramfb_set_resolution(bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
                 fw_cfg_dma_read_selector(wallpaper.selector, ramfb_get_framebuffer(), bmp_header.image_size, bmp_header.image_offset);
             }
@@ -82,24 +82,24 @@ void bios_main() {
     ps2_controller_disable_keyb_translation();
     // Self-test
     if (ps2_controller_self_test() != 0) {
-        print("atiebios: could not initialize PS/2 controller because the self test failed");
+        print("lakebios: could not initialize PS/2 controller because the self test failed");
     } else {
-        print("atiebios: PS/2 controller self test passed");
+        print("lakebios: PS/2 controller self test passed");
     }
     // Enable devices again
     ps2_controller_enable_keyb_port();
     ps2_controller_enable_mouse_port();
     // Reset them
     if (ps2_keyboard_reset() != 0) {
-        print("atiebios: PS/2 keyboard failed to reset");
+        print("lakebios: PS/2 keyboard failed to reset");
     }
     if (ps2_mouse_reset() != 0) {
-        print("atiebios: PS/2 mouse failed to reset");
+        print("lakebios: PS/2 mouse failed to reset");
     }
     // Print amount of memory
-    print("atiebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
-    print("atiebios: KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
-    print("atiebios: KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
+    print("lakebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
+    print("lakebios: KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
+    print("lakebios: KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
     // Set up allocator
     alloc_setup();
     // Enable PIC
@@ -110,6 +110,6 @@ void bios_main() {
     nvme_init();
     // Floppies
     floppy_init();
-    print("atiebios: POST finished");
+    print("lakebios: POST finished");
     for (;;);
 }

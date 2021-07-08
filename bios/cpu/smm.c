@@ -10,9 +10,9 @@ static void smm_handler_main() {
     struct smm_state *registers = (struct smm_state *) (smbase + SMM_SMBASE_STATE_OFFSET);
     uint8_t command = inb(0xb2);
     uint32_t revision = registers->registers.regs32.smrev & 0x2ffff;
-    print("atiebios: smm: Hello from SMM! Command: %d", command);
+    print("lakebios: smm: Hello from SMM! Command: %d", command);
     if (command == 0x01) {
-        // Command 0x01 for AtieBIOS: Move SMBASE to 0xa0000
+        // Command 0x01 for lakebios: Move SMBASE to 0xa0000
         smbase = SMM_NEW_SMBASE;
         if (revision == SMM_REV_32) {
             // 32-bit

@@ -89,7 +89,7 @@ void q35_lpc_acpi_disable() {
 }
 
 void q35_init() {
-    print("atiebios: Q35: chipset found, initializing chipset specific features");
+    print("lakebios: Q35: chipset found, initializing chipset specific features");
     q35_dram_unshadow_bios();
     // SMM setup
     q35_dram_smram_enable();
@@ -109,5 +109,5 @@ void q35_init() {
     q35_dram_pciexbar_set(Q35_PCIEXBAR_BASE);
     q35_dram_pciexbar_enable();
     pci_enumerate(Q35_PCI_MMIO_BAR_BASE, Q35_PCI_IO_BAR_BASE);
-    print("atiebios: Q35: finished initializing chipset specific features");
+    print("lakebios: Q35: finished initializing chipset specific features");
 }

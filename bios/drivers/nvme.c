@@ -70,23 +70,23 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
 }
 
 void nvme_init() {
-    print("atiebios: NVME: initializing controllers");
+    print("lakebios: NVME: initializing controllers");
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t nvme_bus;
         uint8_t nvme_slot;
         uint8_t nvme_function;
         if (pci_get_device(NVME_CLASS, NVME_SUBCLASS, NVME_INTERFACE, &nvme_bus, &nvme_slot, &nvme_function, i) == 0) {
-            print("atiebios: NVME: controller found at bus %d slot %d function %d", nvme_bus, nvme_slot, nvme_function);
+            print("lakebios: NVME: controller found at bus %d slot %d function %d", nvme_bus, nvme_slot, nvme_function);
             if (controller_init(nvme_bus, nvme_slot, nvme_function) == -1) {
-                print("atiebios: NVME: controller mentioned before has not been initialized successfully");
+                print("lakebios: NVME: controller mentioned before has not been initialized successfully");
             } else {
-                print("atiebios: NVME: controller mentioned before has been initialized successfully");
+                print("lakebios: NVME: controller mentioned before has been initialized successfully");
             }
         } else {
             break;
         }
     }
-    print("atiebios: NVME: finished initializing controllers");
+    print("lakebios: NVME: finished initializing controllers");
 }
 
 int nvme_command(

@@ -22,7 +22,7 @@ void pic_init(uint8_t master_base, uint8_t slave_base) {
 
 void pic_enable_irq(uint8_t irq) {
     if (irq > 15) {
-        print("atiebios: PIC: IRQ out of bounds (%d)", irq);
+        print("lakebios: PIC: IRQ out of bounds (%d)", irq);
         return;
     }
     if (irq > 7) {
@@ -35,7 +35,7 @@ void pic_enable_irq(uint8_t irq) {
 
 void pic_disable_irq(uint8_t irq) {
     if (irq > 15) {
-        print("atiebios: PIC: IRQ out of bounds (%d)", irq);
+        print("lakebios: PIC: IRQ out of bounds (%d)", irq);
         return;
     }
 }
