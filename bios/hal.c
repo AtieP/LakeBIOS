@@ -1,5 +1,6 @@
 #include <hal.h>
 #include <stddef.h>
+#include <drivers/ata_common.h>
 #include <tools/alloc.h>
 #include <tools/print.h>
 #include <tools/string.h>
@@ -7,21 +8,21 @@
 static struct disk_abstract disk_inventory[256] = {0};
 static size_t disk_bios_dl = 0;
 
-static const char *type_to_name(int type) {
+static const char *disk_type_to_name(int type) {
     switch (type) {
         case HAL_DISK_AHCI:
-            return "n AHCI disk";
+            return "AHCI disk";
         case HAL_DISK_NVME:
-            return " NVME disk";
+            return "NVME disk";
         case HAL_DISK_FLP:
-            return " floppy disk";
+            return "Floppy disk";
         default:
-            return "n unknown disk";
+            return "Unknown disk";
     }
 }
 
 void hal_disk_submit(struct disk_abstract *disk) {
-    print("lakebios: HAL: submitting a%s", type_to_name(disk->interface));
+    print("lakebios: HAL: submitting a: %s", disk_type_to_name(disk->interface));
     memcpy(&disk_inventory[disk_bios_dl], disk, sizeof(struct disk_abstract));
     disk_inventory[disk_bios_dl].present = 1;
     disk_bios_dl++;
@@ -33,12 +34,47 @@ int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write) {
         return -1;
     }
     if (disk_inventory[i].interface == HAL_DISK_AHCI) {
-        return ahci_command(
+        if (disk_inventory[i].specific.ahci.atapi) {
+            return -1;
+        }
+        if (!disk_inventory[i].specific.ahci.lba48) {
+            // If drive is not lba48, do not access more than 2^28 sectors
+            if ((lba + (len / 512)) & ~0x1fffffff) {
+                return -1;
+            }
+        }
+        if (disk_inventory[i].common.lba_max > (lba + (len / 512))) {
+            return -1; // Out of bounds
+        }
+        // TODO: calculate the amount of PRDTs
+        struct ahci_command_tbl *tbl = calloc(sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt), 128);
+        if (!tbl) {
+            return -1; // Allocation error
+        }
+        tbl->command_fis.fis_kind = AHCI_FIS_H2D;
+        tbl->command_fis.flags = 1 << 7;
+        tbl->command_fis.device = disk_inventory[i].specific.ahci.drive | (1 << 6); // LBA addressing
+        tbl->command_fis.command = write ? ATA_COMMAND_WRITE_DMA_EXT : ATA_COMMAND_READ_DMA_EXT;
+        tbl->command_fis.lba0 = (uint8_t) (lba);
+        tbl->command_fis.lba1 = (uint8_t) (lba >> 8);
+        tbl->command_fis.lba2 = (uint8_t) (lba >> 16);
+        tbl->command_fis.lba3 = (uint8_t) (lba >> 24);
+        tbl->command_fis.lba4 = (uint8_t) (lba >> 32);
+        tbl->command_fis.lba5 = (uint8_t) (lba >> 40);
+        tbl->command_fis.count_low = (uint8_t) (len / 512);
+        tbl->command_fis.count_hi = (uint8_t) ((len / 512) >> 8);
+        tbl->prdt[0].data_addr_low = (uint32_t) buf;
+        tbl->prdt[0].description = len - 1;
+        int ret = ahci_command(
             disk_inventory[i].specific.ahci.abar,
             disk_inventory[i].specific.ahci.port,
-            write ? 0x35 : 0x25, buf, lba, len, write ? 1 : 0,
-            disk_inventory[i].specific.ahci.atapi
+            write,
+            disk_inventory[i].specific.ahci.atapi,
+            tbl,
+            1
         );
+        free(tbl, sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt));
+        return ret;
     }
     if (disk_inventory[i].interface == HAL_DISK_NVME) {
         struct nvme_submission_entry cmd;

@@ -1,8 +1,11 @@
+#include <hal.h>
 #include <cpu/pio.h>
 #include <drivers/ahci.h>
+#include <drivers/ata_common.h>
 #include <drivers/pci.h>
 #include <tools/alloc.h>
 #include <tools/print.h>
+#include <tools/string.h>
 
 static int s64a_supported(volatile struct ahci_abar *abar) {
     return abar->ghc.hba_capabilities & AHCI_CAP_64;
@@ -62,11 +65,22 @@ static void port_free(volatile struct ahci_abar *abar, int index) {
     free((void *) port->fis_addr_low, sizeof(struct ahci_fis_hba));
 }
 
+static void port_deinit(volatile struct ahci_abar *abar, int index) {
+    // Stop execution
+    volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
+    port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
+    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR));
+    // No more interrupts
+    port->interrupt_enable = 0;
+    port->interrupt_status = 0xffffffff;
+    // Free all memory allocated by it
+    port_free(abar, index);
+}
+
 static int port_init(volatile struct ahci_abar *abar, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
-    // Wait for port to be done doing its things and then disable FIS receive and command execution
-    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR));
     port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
+    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR));
     port->interrupt_enable = 0;
     port->interrupt_status = 0xffffffff;
     if (port_alloc(abar, index) != 0) {
@@ -81,7 +95,7 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     }
     // Device must be brought up
     if ((port->sata_status & AHCI_PORT_SATA_STS_DET_MASK) != 3) {
-        port_free(abar, index);
+        port_deinit(abar, index);
         return -1;
     }
     port->command_status |= AHCI_PORT_CMD_STS_FRE; // Otherwise, the status bits get stuck
@@ -91,10 +105,45 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
         inb(0x80);
     }
     if (port->task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ)) {
+        port_deinit(abar, index);
         return -1;
     }
     // Execute commands
     port->command_status |= AHCI_PORT_CMD_STS_ST;
+    // Identify
+    struct ahci_command_tbl *tbl = calloc(sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt), 128);
+    if (!tbl) {
+        port_deinit(abar, index);
+        return -1;
+    }
+    // The identify buffer is 512 bytes in size
+    uint16_t *identify_buffer = calloc(512, 1);
+    if (!identify_buffer) {
+        free(tbl, sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt));
+        port_deinit(abar, index);
+        return -1;
+    }
+    tbl->command_fis.fis_kind = AHCI_FIS_H2D;
+    tbl->command_fis.command = ATA_COMMAND_IDENTIFY;
+    tbl->command_fis.flags = 1 << 7;
+    tbl->prdt[0].data_addr_low = (uint32_t) identify_buffer;
+    tbl->prdt[0].description = 512 - 1;
+    if (ahci_command(abar, index, 0, 0, tbl, 1) == -1) {
+        port_deinit(abar, index);
+        return -1;
+    }
+    free(identify_buffer, 512);
+    // Submit to the HAL
+    int lba48 = ata_common_identify_is_lba48(identify_buffer);
+    struct disk_abstract disk = {0};
+    disk.interface = HAL_DISK_AHCI;
+    disk.common.lba_max = ata_common_identify_sectors(identify_buffer, lba48);
+    disk.specific.ahci.abar = abar;
+    disk.specific.ahci.atapi = 0;
+    disk.specific.ahci.port = index;
+    disk.specific.ahci.lba48 = lba48;
+    disk.specific.ahci.drive = ATA_DRIVE_MASTER;
+    hal_disk_submit(&disk);
     return 0;
 }
 
@@ -105,6 +154,9 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
     }
     pci_enable_bus_mastering(ahci_bus, ahci_slot, ahci_function);
     abar->ghc.global_hba_control |= AHCI_GHC_CNT_AE;
+    // Reset
+    abar->ghc.global_hba_control |= AHCI_GHC_CNT_RESET;
+    while (abar->ghc.global_hba_control & AHCI_GHC_CNT_RESET);
     for (int i = 0; i < get_ports_silicon(abar); i++) {
         if (port_implemented(abar, i)) {
             if (port_init(abar, i) == 0) {
@@ -138,53 +190,33 @@ void ahci_init() {
     print("lakebios: AHCI: finished initializing controllers");
 }
 
-int ahci_command(volatile struct ahci_abar *abar, int index, uint8_t command, void *buf, long long lba, int len, int write, int atapi) {
+int ahci_command(volatile struct ahci_abar *abar, int port, int write, int atapi, struct ahci_command_tbl *tbl, int prdt_len) {
     if (atapi) {
-        return -1; // todo: support it later
+        return -1;
     }
-    int slot = get_free_slot(abar, index);
+    int slot = get_free_slot(abar, port);
     if (slot == -1) {
         return -1;
     }
-    volatile struct ahci_port *port = &abar->ports[index];
-    struct ahci_command_hdr *cmd_hdr = (struct ahci_command_hdr *) port->commands_list_addr_low;
-    cmd_hdr += slot;
-    struct ahci_command_tbl *cmd_tbl = (struct ahci_command_tbl *) calloc(sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt), 128);
-    if (!cmd_tbl) {
-        return -1;
-    }
-    cmd_tbl->command_fis.fis_kind = AHCI_FIS_H2D; // H2D
-    cmd_tbl->command_fis.flags = 1 << 7;
-    cmd_tbl->command_fis.command = command;
-    if (lba != -1) {
-        cmd_tbl->command_fis.lba0 = (uint8_t) lba;
-        cmd_tbl->command_fis.lba1 = (uint8_t) (lba >> 8);
-        cmd_tbl->command_fis.lba2 = (uint8_t) (lba >> 16);
-        cmd_tbl->command_fis.device = (1 << 6) | 0xa0;
-        cmd_tbl->command_fis.lba3 = (uint8_t) (lba >> 24);
-        cmd_tbl->command_fis.lba4 = (uint8_t) (lba >> 32);
-        cmd_tbl->command_fis.lba5 = (uint8_t) (lba >> 48);
-        cmd_tbl->command_fis.count_low = (uint8_t) (len / 512);
-        cmd_tbl->command_fis.count_hi = (uint8_t) ((len / 512) >> 8);
-    }
-    cmd_tbl->prdt[0].data_addr_low = (uint32_t) buf;
-    cmd_tbl->prdt[0].data_addr_hi = 0;
-    cmd_tbl->prdt[0].description = len - 1;
-    uint32_t cmd_hdr_flags =
-          (1 << AHCI_CMD_HDR_FLAGS_PRDTL_SHIFT)
+    volatile struct ahci_command_hdr *hdr = (volatile struct ahci_command_hdr *) abar->ports[port].commands_list_addr_low;
+    hdr += slot;
+    memset((void *) hdr, 0, sizeof(struct ahci_command_hdr));
+    hdr->flags =
+          (prdt_len << AHCI_CMD_HDR_FLAGS_PRDTL_SHIFT)
         | (1 << 10)
-        | (write ? AHCI_CMD_HDR_FLAGS_W : 0)
+        | (write ? AHCI_CMD_HDR_FLAGS_W : 0) 
         | (atapi ? AHCI_CMD_HDR_FLAGS_ATAPI : 0)
         | (sizeof(struct ahci_fis_h2d) / 4)
     ;
-    cmd_hdr->command_table_low = (uint32_t) cmd_tbl;
-    cmd_hdr->command_table_hi = 0;
-    cmd_hdr->flags = cmd_hdr_flags;
-    // Wait for other commands to complete and issue command
-    port->interrupt_status = 0xffffffff;
-    while (port->task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ));
-    port->command_issue |= (1 << slot);
-    while (port->command_issue & (1 << slot));
-    free((void *) cmd_tbl, sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt));
-    return 0;
+    hdr->command_table_low = (uint32_t) tbl;
+    abar->ports[port].interrupt_status = 0xffffffff;
+    // Wait, issue, check
+    while (abar->ports[port].task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ));
+    abar->ports[port].command_issue |= (1 << slot);
+    while (abar->ports[port].command_issue & (1 << slot));
+    if (abar->ports[port].interrupt_status & (1 << 30)) {
+        return -1;
+    } else {
+        return 0;
+    }
 }

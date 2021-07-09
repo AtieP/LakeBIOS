@@ -5,12 +5,10 @@
 #include <drivers/ahci.h>
 #include <drivers/nvme.h>
 
-#define HAL_DISK_CMD_READ 0x01
-#define HAL_DISK_CMD_WRITE 0x02
-
 #define HAL_DISK_AHCI 0x01
 #define HAL_DISK_NVME 0x02
 #define HAL_DISK_FLP  0x03
+#define HAL_DISK_ATA_PIO 0x04
 struct disk_abstract {
     int present;
     int interface;
@@ -22,6 +20,8 @@ struct disk_abstract {
             volatile struct ahci_abar *abar;
             int port;
             int atapi;
+            int drive;
+            int lba48;
         } ahci;
         struct {
             volatile struct nvme_configuration *cfg; 
@@ -36,6 +36,10 @@ struct disk_abstract {
             uint16_t io_base;
             uint8_t kind;
         } floppy;
+        struct {
+            uint16_t io_base;
+            int drive;
+        } ata_pio;
     } specific;
 };
 

@@ -31,7 +31,7 @@ void *malloc(size_t size, size_t alignment) {
     }
     size_t pages = size / 32;
     size_t pages_found = 0;
-    for (size_t i = 0; i < sizeof(bitmap) * OBJECT_SIZE; i++) {
+    for (size_t i = 0; i < sizeof(bitmap) * 8; i++) {
         if (!BIT_TEST(i)) {
             if (pages_found == 0) {
                 if ((alloc_base + (OBJECT_SIZE * i)) % alignment) {
