@@ -59,7 +59,7 @@ int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write) {
         );
     }
     if (disk_inventory[i].interface == HAL_DISK_FLP) {
-        return -1; // Unsupported for now
+        return -1; // Unsupported
     }
     return -1;
 }
