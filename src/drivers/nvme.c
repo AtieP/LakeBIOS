@@ -7,7 +7,8 @@
 #include <tools/print.h>
 #include <tools/string.h>
 
-#define ENTRIES 16
+#define ADMIN_ENTRIES 16
+#define IO_ENTRIES 32
 
 // Get doorbell stride
 static int get_dstrd(volatile struct nvme_configuration *cfg) {
@@ -38,22 +39,22 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
     // Allocate the admin queues and indicate their size
     int mpsmin = get_mpsmin(cfg);
     int alignment = pow(2, 12 + mpsmin);
-    void *asq = calloc(sizeof(struct nvme_submission_entry) * ENTRIES, alignment);
+    void *asq = calloc(sizeof(struct nvme_submission_entry) * ADMIN_ENTRIES, alignment);
     if (!asq) {
         return -1;
     }
-    void *acq = calloc(sizeof(struct nvme_completion_entry) * ENTRIES, alignment);
+    void *acq = calloc(sizeof(struct nvme_completion_entry) * ADMIN_ENTRIES, alignment);
     if (!acq) {
-        free(asq, sizeof(struct nvme_submission_entry) * ENTRIES);
+        free(asq, sizeof(struct nvme_submission_entry) * ADMIN_ENTRIES);
         return -1;
     }
-    cfg->admin_queue_attrs = ((ENTRIES - 1) << NVME_AQA_ACQS_SHIFT) | ((ENTRIES - 1) << NVME_AQA_ASQS_SHIFT);
+    cfg->admin_queue_attrs = ((ADMIN_ENTRIES - 1) << NVME_AQA_ACQS_SHIFT) | ((ADMIN_ENTRIES - 1) << NVME_AQA_ASQS_SHIFT);
     cfg->admin_submission_queue_addr = (uint64_t) (uintptr_t) asq;
     cfg->admin_completion_queue_addr = (uint64_t) (uintptr_t) acq;
     // Set configuration and enable the controller
     cfg->controller_config =
-          (4 << NVME_CFG_CC_IOCQES_SHIFT)
-        | (6 << NVME_CFG_CC_IOSQES_SHIFT)
+          (4 << NVME_CFG_CC_IOCQES_SHIFT) // 2^4 = 16: Completion entry size
+        | (6 << NVME_CFG_CC_IOSQES_SHIFT) // 2^6 = 64: Submission entry size
         | (mpsmin << NVME_CFG_CC_MPS_SHIFT)
         | (0 << NVME_CFG_CC_CSS_SHIFT) // NVM command set
         | (0 << NVME_CFG_CC_AMS_SHIFT) // Round robin
@@ -67,112 +68,102 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
             return -1;
         }
     }
-    // Identify how many drives there are connected, create IO queues for them
-    // and register them on the disk HAL
-    void *controller_identify_buffer = calloc(4096, alignment);
-    if (!controller_identify_buffer) {
+    // Allocate queues and buffers
+    void *identify_buffer = calloc(4096, alignment);
+    if (!identify_buffer) {
+        return -1;
+    }
+    void *io_completion_queue = calloc(sizeof(struct nvme_completion_entry) * IO_ENTRIES, alignment);
+    if (!io_completion_queue) {
+        free(identify_buffer, 4096);
+        return -1;
+    }
+    void *io_submission_queue = calloc(sizeof(struct nvme_submission_entry) * IO_ENTRIES, alignment);
+    if (!io_submission_queue) {
+        free(identify_buffer, 4096);
+        free(io_completion_queue, sizeof(struct nvme_completion_entry) * IO_ENTRIES);
         return -1;
     }
     uint32_t head = 0;
     uint32_t tail = 0;
-    uint32_t namespaces;
-    // Get amount of namespaces
+    // Identify controller
     struct nvme_submission_entry cmd;
     memset(&cmd, 0, sizeof(struct nvme_submission_entry));
     cmd.opcode = NVME_CMD_ADMIN_ID;
-    cmd.prp1 = (uint64_t) (uintptr_t) controller_identify_buffer;
+    cmd.prp1 = (uint32_t) identify_buffer;
     cmd.cmd_specific[0] = NVME_CMD_ADMIN_ID_CONTROLLER;
-    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
-        free(controller_identify_buffer, 4096);
-        return -1;
+    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) == -1) {
+        goto free_error;
     }
-    namespaces = *((uint32_t *) (controller_identify_buffer + 516));
-    free(controller_identify_buffer, 4096);
-    // Allocate buffer for the namespaces list
-    void *namespaces_identify_buffer = calloc(sizeof(uint32_t) * namespaces, alignment);
-    if (!namespaces_identify_buffer) {
-        return -1;
+    uint32_t namespaces = *((uint32_t *) (identify_buffer + 516));
+    // Get namespace list
+    uint32_t *namespace_list = calloc(sizeof(uint32_t) * namespaces, alignment);
+    if (!namespace_list) {
+        goto free_error;
     }
-    // Get the namespaces list and identify each one of the namespaces
     memset(&cmd, 0, sizeof(struct nvme_submission_entry));
     cmd.opcode = NVME_CMD_ADMIN_ID;
-    cmd.prp1 = (uint64_t) (uintptr_t) namespaces_identify_buffer;
+    cmd.prp1 = (uint32_t) namespace_list;
     cmd.cmd_specific[0] = NVME_CMD_ADMIN_ID_NAMESPACES;
-    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
-        free(namespaces_identify_buffer, 4096);
+    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) == -1) {
+        goto free_error;
+    }
+    // Create queues
+    memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+    cmd.opcode = NVME_CMD_ADMIN_CREATE_ICQ;
+    cmd.prp1 = (uint64_t) (uintptr_t) io_completion_queue;
+    cmd.cmd_specific[0] = ((sizeof(struct nvme_completion_entry) * IO_ENTRIES - 1) << 16) | 1;
+    cmd.cmd_specific[1] = 1 << 0; // Physically contiguous
+    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) == -1) {
+        goto free_error;
+    }
+    memset(&cmd, 0, sizeof(struct nvme_submission_entry));
+    cmd.opcode = NVME_CMD_ADMIN_CREATE_ISQ;
+    cmd.prp1 = (uint64_t) (uintptr_t) io_submission_queue;
+    cmd.cmd_specific[0] = ((sizeof(struct nvme_submission_entry) * IO_ENTRIES - 1) << 16) | 1;
+    cmd.cmd_specific[1] = (1 << 16) | (1 << 0); // Physically contiguous
+    if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) == -1) {
+        // whatever...
+        free(identify_buffer, 4096);
+        free(io_submission_queue, sizeof(struct nvme_submission_entry) * IO_ENTRIES);
         return -1;
     }
-    void *namespace_identify_buffer = calloc(4096, alignment);
-    if (!namespace_identify_buffer) {
-        return -1;
-    }
-    // Identify each one of the namespaces, create IO queues for them, and register them in the HAL
-    for (size_t i = 0; i < namespaces; i++) {
-        uint32_t namespace_id = *((uint32_t *) namespaces_identify_buffer + i);
-        if (!namespace_id) {
+    // Finally identify the namespaces and submit them to the HAL
+    for (uint32_t i = 0; i < namespaces; i++) {
+        if (!namespace_list[i]) {
             continue;
         }
-        // Identify namespace (todo: actually extract the useful info)
         memset(&cmd, 0, sizeof(struct nvme_submission_entry));
         cmd.opcode = NVME_CMD_ADMIN_ID;
-        cmd.prp1 = (uint64_t) (uintptr_t) namespace_identify_buffer;
+        cmd.prp1 = (uint64_t) (uintptr_t) identify_buffer;
         cmd.cmd_specific[0] = NVME_CMD_ADMIN_ID_NAMESPACE;
-        cmd.namespace_id = namespace_id;
-        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
+        cmd.namespace_id = namespace_list[i];
+        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) == -1) {
             not_initialized_namespaces++;
             continue;
         }
-        // Allocate IO queues
-        uint64_t io_completion_queue = (uint64_t) (uintptr_t) calloc(ENTRIES * 16, alignment);
-        if (!io_completion_queue) {
-            not_initialized_namespaces++;
-            continue;
-        }
-        uint64_t io_submission_queue = (uint64_t) (uintptr_t) calloc(ENTRIES * 16, alignment);
-        if (!io_submission_queue) {
-            free((void *) (uintptr_t) io_completion_queue, ENTRIES * 16);
-            not_initialized_namespaces++;
-            continue;
-        }
-        // For us, namespace id == queue id
-        // Set the IO completion queue
-        memset(&cmd, 0, sizeof(struct nvme_submission_entry));
-        cmd.opcode = NVME_CMD_ADMIN_CREATE_ICQ;
-        cmd.prp1 = io_completion_queue;
-        cmd.cmd_specific[0] = ((ENTRIES * 16 - 1) << 16) | namespace_id;
-        cmd.cmd_specific[1] = 1 << 0; // Physically contiguous
-        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
-            free((void *) (uintptr_t) io_completion_queue, ENTRIES * 16);
-            free((void *) (uintptr_t) io_submission_queue, ENTRIES * 16);
-            not_initialized_namespaces++;
-            continue;
-        }
-        // Set the IO submission queue
-        memset(&cmd, 0, sizeof(struct nvme_submission_entry));
-        cmd.opcode = NVME_CMD_ADMIN_CREATE_ISQ;
-        cmd.prp1 = io_submission_queue;
-        cmd.cmd_specific[0] = ((ENTRIES * 16 - 1) << 16) | namespace_id;
-        cmd.cmd_specific[1] = (namespace_id << 16) | (1 << 0);
-        if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) != 0) {
-            free((void *) (uintptr_t) io_submission_queue, ENTRIES * 16);
-            not_initialized_namespaces++;
-            continue;
-        }
-        // Submit to the HAL
         struct disk_abstract disk;
+        disk.common.lba_max = *((uint32_t *) (identify_buffer + 0));
         disk.interface = HAL_DISK_NVME;
-        disk.common.lba_max = 1;
         disk.specific.nvme.cfg = cfg;
-        disk.specific.nvme.namespace_id = namespace_id;
-        disk.specific.nvme.sq = (volatile struct nvme_submission_entry *) (uintptr_t) io_submission_queue;
-        disk.specific.nvme.cq = (volatile struct nvme_completion_entry *) (uintptr_t) io_completion_queue;
-        disk.specific.nvme.queue_id = namespace_id;
+        disk.specific.nvme.cq = io_completion_queue;
+        disk.specific.nvme.sq = io_submission_queue;
+        disk.specific.nvme.namespace_id = namespace_list[i];
+        disk.specific.nvme.queue_id = 1;
         disk.specific.nvme.head = 0;
         disk.specific.nvme.tail = 0;
         hal_disk_submit(&disk);
     }
-    free(namespaces_identify_buffer, 4096);
-    free(namespace_identify_buffer, 4096);
+    free(namespace_list, namespaces * sizeof(uint32_t));
+    goto free_success;
+free_error:
+    free(io_completion_queue, sizeof(struct nvme_completion_entry) * IO_ENTRIES);
+    free(io_submission_queue, sizeof(struct nvme_submission_entry) * IO_ENTRIES);
+    free(identify_buffer, 4096);
+    return -1;
+
+free_success:
+    free(identify_buffer, 4096);
     return not_initialized_namespaces;
 }
 
@@ -212,7 +203,7 @@ int nvme_command(
     sq += tail;
     memcpy((void *) sq, command, sizeof(struct nvme_submission_entry));
     // Trigger command
-    if (++tail == ENTRIES) {
+    if (++tail == IO_ENTRIES) {
         tail = 0;
     }
     *s_tail_doorbell = tail;
@@ -225,7 +216,7 @@ int nvme_command(
     if (cq[head].status >> 1) {
         return -1;
     }
-    if (++head == ENTRIES) {
+    if (++head == IO_ENTRIES) {
         head = 0;
     }
     *c_head_doorbell = head;
