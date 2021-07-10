@@ -24,8 +24,8 @@
 #define I440FX_PIIX4_SLOT 1
 #define I440FX_PIIX4_FUNCTION 3
 
-void i440fx_pmc_shadow_bios();
-void i440fx_pmc_unshadow_bios();
+void i440fx_pmc_shadow_bios(int first_pam);
+void i440fx_pmc_unshadow_bios(int first_pam);
 void i440fx_pmc_smram_open();
 void i440fx_pmc_smram_close();
 void i440fx_pmc_smram_lock();

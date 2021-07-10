@@ -5,12 +5,12 @@
 #include <tools/print.h>
 #include <tools/string.h>
 
-extern char bios_code_start[];
-extern char bios_code_end[];
+extern char bios_raw_start[];
+extern char bios_raw_end[];
 
-static void unshadow_bios_internal() {
+static void unshadow_bios_internal(int first_pam) {
     uint8_t pam;
-    for (int i = 0; i < 7; i++) {
+    for (int i = first_pam; i < 7; i++) {
         pam = pci_cfg_read_byte(Q35_DRAM_BUS, Q35_DRAM_SLOT, Q35_DRAM_FUNCTION, Q35_DRAM_PAM_BASE + i);
         pam |= 0b11 << 4;
         if (i != 0) {
@@ -19,18 +19,18 @@ static void unshadow_bios_internal() {
         pci_cfg_write_byte(Q35_DRAM_BUS, Q35_DRAM_SLOT, Q35_DRAM_FUNCTION, Q35_DRAM_PAM_BASE + i, pam);
     }
     // Copy now the BIOS into ram
-    memcpy(bios_code_start, bios_code_start + 0xfff00000, bios_code_end - bios_code_start);
+    memcpy(bios_raw_start, bios_raw_start + 0xfff00000, bios_raw_end - bios_raw_start - (first_pam * 0x10000));
 }
 
-void q35_dram_shadow_bios() {
-    for (int i = 0; i < 7; i++) {
+void q35_dram_shadow_bios(int first_pam) {
+    for (int i = first_pam; i < 7; i++) {
         pci_cfg_write_byte(Q35_DRAM_BUS, Q35_DRAM_SLOT, Q35_DRAM_FUNCTION, Q35_DRAM_PAM_BASE + i, 0);
     }   
 }
 
-void q35_dram_unshadow_bios() {
-    void (*function)() = (void (*)()) ((uintptr_t) unshadow_bios_internal + 0xfff00000);
-    function();
+void q35_dram_unshadow_bios(int first_pam) {
+    void (*function)(int) = (void (*)(int)) ((uintptr_t) unshadow_bios_internal + 0xfff00000);
+    function(first_pam);
 }
 
 void q35_dram_smram_open() {
@@ -90,13 +90,13 @@ void q35_lpc_acpi_disable() {
 
 void q35_init() {
     print("lakebios: Q35: chipset found, initializing chipset specific features");
-    q35_dram_unshadow_bios();
+    q35_dram_unshadow_bios(1);
     // SMM setup
     q35_dram_smram_enable();
     q35_dram_smram_open();
     // Copy handler
-    memcpy((void *) SMM_DEFAULT_SMBASE + SMM_SMBASE_HANDLER_OFFSET, (const void *) smm_entry_code_start, smm_entry_code_end - smm_entry_code_start);
-    memcpy((void *) SMM_NEW_SMBASE + SMM_SMBASE_HANDLER_OFFSET, (const void *) smm_entry_code_start, smm_entry_code_end - smm_entry_code_start);
+    memcpy((void *) SMM_DEFAULT_SMBASE + SMM_SMBASE_HANDLER_OFFSET, (const void *) smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
+    memcpy((void *) SMM_NEW_SMBASE + SMM_SMBASE_HANDLER_OFFSET, (const void *) smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
     q35_dram_smram_close();
     q35_dram_smram_lock();
     // Enable the ACPI registers and cause the APM control port (0xb2) to cause a SMI#

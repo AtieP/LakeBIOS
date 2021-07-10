@@ -5,7 +5,7 @@
 
 static uint32_t smbase = SMM_DEFAULT_SMBASE;
 
-__attribute__((__section__(".smm_main_code"), __used__))
+__attribute__((__section__(".smm_entry"), __used__))
 static void smm_handler_main() {
     struct smm_state *registers = (struct smm_state *) (smbase + SMM_SMBASE_STATE_OFFSET);
     uint8_t command = inb(0xb2);

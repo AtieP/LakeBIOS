@@ -31,8 +31,8 @@
 #define Q35_LPC_ACPI_CNTL_EN (1 << 7)
 
 void q35_init();
-void q35_dram_shadow_bios();
-void q35_dram_unshadow_bios();
+void q35_dram_shadow_bios(int first_pam);
+void q35_dram_unshadow_bios(int first_pam);
 void q35_dram_smram_open();
 void q35_dram_smram_close();
 void q35_dram_smram_lock();

@@ -1,22 +1,12 @@
 OUTPUT_FORMAT(binary)
 
 SECTIONS {
-    bios_code_start = 0xf0000;
-    . = 0xf0400;
-    smm_entry_code_start = .;
-    . = 0xf0800;
-    smm_entry_code_end = .;
-    smm_main_code_start = .;
-    .smm_main_code : {
-        KEEP(*(.smm_main_code))
-    }
-    . = 0xf1800;
-    smm_main_code_end = .;
+    smm_trampoline_start = 0xfe000;
+    smm_trampoline_end = 0xff000;
 
-    .text : {
-        KEEP(*(.c_init*))
-        *(.text*)
-    }
+    . = 0xe0000;
+    bios_raw_start = .;
+    bios_data_start = .;
 
     .data : {
         *(.data*)
@@ -30,6 +20,20 @@ SECTIONS {
         *(.bss*)
     }
 
-    . = 0xffff0;
-    bios_code_end = 0x100000;
+    . = 0xf0000;
+    bios_data_end = .;
+    bios_code_start = .;
+
+    .smm_entry : {
+        KEEP(*(.smm_entry*))
+    }
+
+    . = 0xf1000;
+    .text : {
+        KEEP(*(.bios_init*))
+        *(.text*)
+    }
+
+    bios_code_end = .;
+    bios_raw_end = .;
 }

@@ -18,7 +18,7 @@ QEMUFLAGS := -no-reboot -bios $(BIOS) -debugcon stdio -vga none -device ramfb -f
 all: $(BIOS)
 
 $(BIOS): $(OBJS) src/entry.asm
-	$(LD) $(LDFLAGS) $(OBJS) -o cblob.bin
+	$(LD) $(LDFLAGS) $(OBJS) -o blob.bin
 	$(AS) $(ASFLAGS) src/entry.asm -o $@
 
 %.o: %.c

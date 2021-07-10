@@ -11,10 +11,8 @@
 #define SMM_REV_32 0x20000
 #define SMM_REV_64 0x20064
 
-extern char smm_entry_code_start[];
-extern char smm_entry_code_end[];
-extern char bios_code_start[];
-extern char bios_code_end[];
+extern char smm_trampoline_start[];
+extern char smm_trampoline_end[];
 
 // Most of the "reserved" registers here aren't actually reserved.
 // Apparently, the SMM layout between Intel and AMD processors differ.

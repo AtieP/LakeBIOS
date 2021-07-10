@@ -34,7 +34,7 @@ struct {
     uint32_t image_ycount;
 } __attribute__((__packed__)) bmp_header;
 
-__attribute__((__section__(".c_init"), used))
+__attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
     // Chipset specific setup first, first detect what chipset running on
     uint16_t chipset_vendor = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);

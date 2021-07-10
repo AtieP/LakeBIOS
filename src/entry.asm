@@ -1,28 +1,21 @@
-bios_size: equ 0x10000
-bios_main: equ 0xf1800
-smm_main:  equ 0xf0800
+bios_size: equ 0x20000
+bios_init: equ 0xf1000
+smm_entry: equ 0xf0000
 
-gdt_addr: equ 0x400
-stack:    equ 0x2000
+incbin "blob.bin"
 
-org 0xf0000
+times (bios_size - (4096 * 2)) - ($ - $$) db 0x00
 
 bits 16
-bios_entry:
-    cli
+org 0xf0000
 
-    ; Temporary workaround
-    mov ax, cs
+smm_trampoline:
+    cld
+
+    mov ax, 0xf000
     mov ds, ax
-    xor ax, ax
-    mov es, ax
-    mov si, gdt
-    mov di, gdt_addr
-    mov cx, gdt.end - gdt
-    rep movsb
 
-    ; Go to protected mode
-    lgdt [gdtr]
+    lgdt [early_init.early_gdtr]
 
     mov eax, cr0
     or al, 1
@@ -34,16 +27,52 @@ bios_entry:
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov esp, stack
 
-    jmp dword 0x08:bios_main
+    jmp dword 0x08:smm_entry
 
-bits 16
-; Initial GDT for loading the BIOS, the BIOS will load its own GDT later
-gdt:
+times 4096 - ($ - smm_trampoline) db 0x00
+
+early_init:
+    ; Some people like to jump to the reset vector. Mitigate against
+    ; possible corruptions
+    cli
+    cld
+
+    ; KVM doesn't like the GDT being in read only memory.
+    ; Move it somewhere else in RAM, it doesn't matter where
+    ; exactly really since during POST the BIOS will load its
+    ; own GDT
+    mov ax, cs
+    mov ds, ax
+    xor ax, ax
+    mov es, ax
+
+    mov si, .early_gdt
+    mov di, 0x400
+    mov cx, .early_gdt.end - .early_gdt
+    rep movsb
+
+    lgdt [.early_gdtr]
+
+    mov eax, cr0
+    or al, 1
+    mov cr0, eax
+
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov esp, 0x2000
+
+    jmp dword 0x08:bios_init
+
+.early_gdt:
+    ; null
     dq 0
 
-.code:
+    ; code
     dw 0xffff
     dw 0x0000
     db 0x00
@@ -51,7 +80,7 @@ gdt:
     db 11001111b
     db 0x00
 
-.data:
+    ; data
     dw 0xffff
     dw 0x0000
     db 0x00
@@ -59,38 +88,14 @@ gdt:
     db 11001111b
     db 0x00
 
-.end:
+.early_gdt.end:
 
-gdtr:
-    dw gdt.end - gdt - 1
-    dd gdt_addr
-
-times 1024 - ($ - $$) db 0x00
-smm_entry_code:
-    mov ax, 0xf000
-    mov ds, ax
-
-    lgdt [gdtr]
-
-    mov eax, cr0
-    or al, 1
-    mov cr0, eax
-
-    mov ax, 0x10
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-
-    jmp dword 0x08:smm_main
-
-times 1024 - ($ - smm_entry_code) db 0x00
-
-incbin "cblob.bin"
+.early_gdtr:
+    dw .early_gdt.end - .early_gdt - 1
+    dd 0x400
 
 times (bios_size - 16) - ($ - $$) db 0x00
 
 reset_vector:
-    jmp 0xf000:0
-    times 11 db 0xf4
+    jmp 0xf000:early_init
+    times 11 db 0
