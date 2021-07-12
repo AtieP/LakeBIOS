@@ -1,5 +1,6 @@
 #include <cpu/pio.h>
 #include <drivers/ps2.h>
+#include <tools/print.h>
 
 static void poll_read() {
     while (!(inb(PS2_STATUS) & 1));
@@ -150,4 +151,36 @@ resend:
         return 0;
     }
     return -1;
+}
+
+int ps2_init() {
+    // Disable devices
+    ps2_controller_disable_keyb_port();
+    ps2_controller_disable_mouse_port();
+    // Flush keyboard buffer
+    inb(0x60);
+    // Disable IRQs and keyboard translation
+    ps2_controller_disable_keyb_irqs();
+    ps2_controller_disable_mouse_irqs();
+    ps2_controller_disable_keyb_translation();
+    // Self-test
+    if (ps2_controller_self_test() != 0) {
+        print("lakebios: could not initialize PS/2 controller because the self test failed");
+        return -1;
+    } else {
+        print("lakebios: PS/2 controller self test passed");
+    }
+    // Enable devices again
+    ps2_controller_enable_keyb_port();
+    ps2_controller_enable_mouse_port();
+    // Reset them
+    if (ps2_keyboard_reset() != 0) {
+        print("lakebios: PS/2 keyboard failed to reset");
+        return -1;
+    }
+    if (ps2_mouse_reset() != 0) {
+        print("lakebios: PS/2 mouse failed to reset");
+        return -1;
+    }
+    return 0;
 }

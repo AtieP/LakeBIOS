@@ -45,4 +45,6 @@ void ps2_keyboard_disable_scanning();
 
 int ps2_mouse_reset();
 
+int ps2_init();
+
 #endif

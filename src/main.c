@@ -5,12 +5,11 @@
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <drivers/ahci.h>
-#include <drivers/fw_cfg.h>
 #include <drivers/nvme.h>
 #include <drivers/pic.h>
 #include <drivers/ps2.h>
-#include <drivers/ramfb.h>
 #include <drivers/rtc.h>
+#include <paravirt/qemu.h>
 #include <tools/alloc.h>
 #include <tools/bswap.h>
 #include <tools/print.h>
@@ -18,83 +17,24 @@
 
 #include <drivers/pci.h>
 
-struct {
-    uint16_t signature;
-    uint32_t file_size;
-    uint32_t reserved;
-    uint32_t image_offset;
-    uint32_t header_size;
-    uint32_t image_width;
-    uint32_t image_height;
-    uint16_t image_planes;
-    uint16_t image_bpp;
-    uint32_t image_compression;
-    uint32_t image_size;
-    uint32_t image_xcount;
-    uint32_t image_ycount;
-} __attribute__((__packed__)) bmp_header;
-
 __attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
-    // Chipset specific setup first, first detect what chipset running on
-    uint16_t chipset_vendor = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
-    uint16_t chipset_device = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);
-    if (chipset_vendor == Q35_DRAM_VENDOR && chipset_device == Q35_DRAM_DEVICE) {
-        q35_init();
-    } else if (chipset_vendor == I440FX_PMC_VENDOR && chipset_device == I440FX_PMC_DEVICE) {
+    uint16_t vendor_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
+    uint16_t device_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);
+    if (vendor_id == I440FX_PMC_VENDOR && device_id == I440FX_PMC_DEVICE) {
+        print("lakebios: i440fx chipset detected, initializing");
         i440fx_init();
+    } else if (vendor_id == Q35_DRAM_VENDOR && device_id == Q35_DRAM_DEVICE) {
+        print("lakebios: q35 chipset detected, initializing");
+        q35_init();
     } else {
-        print("Sorry, chipset with host bridge vendor %x device %x not supported", chipset_vendor, chipset_device);
-        for (;;);
+        print("lakebios: sorry, unknown chipset with host bridge vendor %x device %x", vendor_id, device_id);
+        for (;;) {}
     }
     gdt_craft();
     gdt_reload();
-    if (ramfb_detect() == 0) {
-        print("lakebios: ramfb detected!");
-        struct fw_cfg_file wallpaper = fw_cfg_get_file("opt/wallpaper");
-        if (wallpaper.selector == 0) {
-            print("lakebios: no wallpaper found at fw_cfg opt/wallpaper, filling the screen with a color");
-            ramfb_set_resolution(1024, 768, 32);
-            uint32_t *framebuffer = (uint32_t *) ramfb_get_framebuffer();
-            for (int i = 0; i < 1024 * 768 * 2; i++) {
-                framebuffer[i] = 0xabcdef;
-            }   
-        } else {
-            fw_cfg_dma_read_selector(wallpaper.selector, &bmp_header, sizeof(bmp_header), 0);
-            if (bmp_header.signature != 0x4d42) {
-                print("lakebios: wallpaper found, but format is not valid (needs to be a BMP)");
-            } else {
-                print("lakebios: wallpaper found! width: %d height: %d bpp: %d", bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
-                ramfb_set_resolution(bmp_header.image_width, bmp_header.image_height, bmp_header.image_bpp);
-                fw_cfg_dma_read_selector(wallpaper.selector, ramfb_get_framebuffer(), bmp_header.image_size, bmp_header.image_offset);
-            }
-        }
-    }
-    // PS/2 initialization
-    // Disable devices
-    ps2_controller_disable_keyb_port();
-    ps2_controller_disable_mouse_port();
-    // Flush keyboard buffer
-    inb(0x60);
-    // Disable IRQs and keyboard translation
-    ps2_controller_disable_keyb_irqs();
-    ps2_controller_disable_mouse_irqs();
-    ps2_controller_disable_keyb_translation();
-    // Self-test
-    if (ps2_controller_self_test() != 0) {
-        print("lakebios: could not initialize PS/2 controller because the self test failed");
-    } else {
-        print("lakebios: PS/2 controller self test passed");
-    }
-    // Enable devices again
-    ps2_controller_enable_keyb_port();
-    ps2_controller_enable_mouse_port();
-    // Reset them
-    if (ps2_keyboard_reset() != 0) {
-        print("lakebios: PS/2 keyboard failed to reset");
-    }
-    if (ps2_mouse_reset() != 0) {
-        print("lakebios: PS/2 mouse failed to reset");
+    if (ps2_init() != 0) {
+        print("lakebios: ps2 not initialized successfully. Halting.");
     }
     // Print amount of memory
     print("lakebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
@@ -108,6 +48,56 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
+    // Make something fancy :)
+    struct qemu_fw_cfg_file file;
+    if (qemu_fw_cfg_get_file("etc/ramfb", &file) == 0) {
+        uint16_t ramfb_selector = file.selector;
+        struct {
+            uint64_t framebuffer;
+            uint32_t model;
+            uint32_t flags;
+            uint32_t width;
+            uint32_t height;
+            uint32_t stride;
+        } __attribute__((__packed__)) ramfb;
+        ramfb.width = bswap32(1024);
+        ramfb.height = bswap32(768);
+        ramfb.stride = bswap32(1024 * (32 / 8));
+        ramfb.framebuffer = bswap64((uint64_t) 0x100000);
+        ramfb.flags = 0;
+        ramfb.model = bswap32(0x34325241);
+        qemu_fw_cfg_write(ramfb_selector, &ramfb, sizeof(ramfb), 0);
+        uint32_t *fb = (uint32_t *) 0x100000;
+        struct {
+            uint16_t signature;
+            uint32_t file_size;
+            uint32_t reserved;
+            uint32_t image_offset;
+            uint32_t header_size;
+            uint32_t image_width;
+            uint32_t image_height;
+            uint16_t image_planes;
+            uint16_t image_bpp;
+            uint32_t image_compression;
+            uint32_t image_size;
+            uint32_t image_xcount;
+            uint32_t image_ycount;
+        } __attribute__((__packed__)) bmp_header;
+        if (qemu_fw_cfg_get_file("opt/wallpaper", &file) == 0) {
+            qemu_fw_cfg_read(file.selector, &bmp_header, sizeof(bmp_header), 0);
+            if (bmp_header.signature == 0x4d42) {
+                ramfb.width = bswap32(bmp_header.image_width);
+                ramfb.height = bswap32(bmp_header.image_height);
+                ramfb.stride = bswap32(bmp_header.image_width * (bmp_header.image_bpp / 8));
+                qemu_fw_cfg_write(ramfb_selector, &ramfb, sizeof(ramfb), 0);
+                qemu_fw_cfg_read(file.selector, fb, bmp_header.image_size, bmp_header.image_offset);
+            }
+        } else {
+            for (int i = 0; i < 1024 * 768; i++) {
+                fb[i] = 0xd3d3d3;
+            }
+        }
+    }
     print("lakebios: POST finished");
     for (;;);
 }
