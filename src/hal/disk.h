@@ -1,5 +1,5 @@
-#ifndef __HAL_H__
-#define __HAL_H__
+#ifndef __HAL_DISK_H__
+#define __HAL_DISK_H__
 
 #include <stdint.h>
 #include <drivers/ahci.h>

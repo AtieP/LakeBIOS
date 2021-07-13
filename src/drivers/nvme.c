@@ -1,7 +1,7 @@
-#include <hal.h>
 #include <stddef.h>
 #include <drivers/nvme.h>
 #include <drivers/pci.h>
+#include <hal/disk.h>
 #include <tools/alloc.h>
 #include <tools/math.h>
 #include <tools/print.h>

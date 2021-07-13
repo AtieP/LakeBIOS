@@ -1,6 +1,6 @@
-#include <hal.h>
 #include <stddef.h>
 #include <drivers/ata_common.h>
+#include <hal/disk.h>
 #include <tools/alloc.h>
 #include <tools/print.h>
 #include <tools/string.h>

@@ -1,8 +1,8 @@
-#include <hal.h>
 #include <cpu/pio.h>
 #include <drivers/ahci.h>
 #include <drivers/ata_common.h>
 #include <drivers/pci.h>
+#include <hal/disk.h>
 #include <tools/alloc.h>
 #include <tools/print.h>
 #include <tools/string.h>
