@@ -59,7 +59,7 @@ struct smm_state {
             uint64_t rcx;
             uint64_t rax;
         } __attribute__((__packed__)) regs64;
-    } registers;
+    };
 } __attribute__((__packed__));
 
 #endif

@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-#define GDT_PM32_CS 0x08
-#define GDT_PM32_DS 0x10
+#define GDT_16_CS 0x08
+#define GDT_16_DS 0x10
+#define GDT_32_CS 0x18
+#define GDT_32_DS 0x20
 
 struct gdt_entry {
     uint16_t limit_low;
@@ -21,6 +23,6 @@ struct gdt_register {
 } __attribute__((__packed__));
 
 void gdt_craft();
-void gdt_reload();
+void gdt_reload(uint32_t cs, uint32_t ds);
 
 #endif

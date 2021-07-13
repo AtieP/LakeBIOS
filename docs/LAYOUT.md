@@ -11,6 +11,7 @@ The memory layout of LakeBIOS is "complex". This is because we have tight space,
 
 # BIOS code
 0xf0000-0xf0fff: The main SMM handler.  
-0xf1000-0xfdfff: BIOS init, drivers..  
-0xfe000-0xff000: SMM trampoline. The BIOS relocates this to SMRAM. This bootstraps the SMM handler.  
+0xf1000-0xfcfff: BIOS init, drivers..  
+0xfd000-0xfdfff: Handlers for real mode interrupts.
+0xfe000-0xfefff: SMM trampoline. The BIOS relocates this to SMRAM. This bootstraps the SMM handler.  
 0xff000-0xfffff: BIOS early initialization code. The CPU starts executing code at 0xfffffff0. However, this jumps back to 0xff000 to execute the early initialization code.  

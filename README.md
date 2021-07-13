@@ -3,10 +3,10 @@ Firmware for I440FX and Q35. Meant to be ran in emulators, specially QEMU.
 
 # Features
 - SMM
-- ramfb
 - PIC, PS/2, Memory dectection
 - AHCI
 - NVME
+- Loading a bootsector and jumping to it!
 
 # Testing
 `make all run`

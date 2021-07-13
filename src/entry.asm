@@ -2,12 +2,34 @@ bios_size: equ 0x20000
 bios_init: equ 0xf1000
 smm_entry: equ 0xf0000
 
+
+org 0xe0000
+
 incbin "blob.bin"
 
-times (bios_size - (4096 * 2)) - ($ - $$) db 0x00
+times (bios_size - (4096 * 3)) - ($ - $$) db 0x00
 
 bits 16
-org 0xf0000
+
+real_mode_handlers:
+
+%macro real_mode_handler 1
+align 16
+    ; This is insanity, but EAX needs to be preserved somehow :shrug:
+    mov cr2, eax
+    mov al, i
+    out 0xb3, al
+    mov al, 0x10
+    out 0xb2, al
+    mov eax, cr2
+    iret
+%endmacro
+
+%assign i 0
+%rep 256
+real_mode_handler i
+%assign i i + 1
+%endrep
 
 smm_trampoline:
     cld
@@ -27,6 +49,7 @@ smm_trampoline:
     mov fs, ax
     mov gs, ax
     mov ss, ax
+    mov esp, 0xa7000
 
     jmp dword 0x08:smm_entry
 

@@ -8,6 +8,7 @@
 #include <drivers/pic.h>
 #include <drivers/ps2.h>
 #include <drivers/rtc.h>
+#include <hal/disk.h>
 #include <paravirt/qemu.h>
 #include <tools/alloc.h>
 #include <tools/bswap.h>
@@ -31,9 +32,10 @@ void bios_main() {
         for (;;) {}
     }
     gdt_craft();
-    gdt_reload();
+    gdt_reload(GDT_32_CS, GDT_32_DS);
     if (ps2_init() != 0) {
         print("lakebios: ps2 not initialized successfully. Halting.");
+        for (;;) {}
     }
     // Print amount of memory
     print("lakebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
@@ -47,56 +49,43 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
-    // Make something fancy :)
-    struct qemu_fw_cfg_file file;
-    if (qemu_fw_cfg_get_file("etc/ramfb", &file) == 0) {
-        uint16_t ramfb_selector = file.selector;
-        struct {
-            uint64_t framebuffer;
-            uint32_t model;
-            uint32_t flags;
-            uint32_t width;
-            uint32_t height;
-            uint32_t stride;
-        } __attribute__((__packed__)) ramfb;
-        ramfb.width = bswap32(1024);
-        ramfb.height = bswap32(768);
-        ramfb.stride = bswap32(1024 * (32 / 8));
-        ramfb.framebuffer = bswap64((uint64_t) 0x100000);
-        ramfb.flags = 0;
-        ramfb.model = bswap32(0x34325241);
-        qemu_fw_cfg_write(ramfb_selector, &ramfb, sizeof(ramfb), 0);
-        uint32_t *fb = (uint32_t *) 0x100000;
-        struct {
-            uint16_t signature;
-            uint32_t file_size;
-            uint32_t reserved;
-            uint32_t image_offset;
-            uint32_t header_size;
-            uint32_t image_width;
-            uint32_t image_height;
-            uint16_t image_planes;
-            uint16_t image_bpp;
-            uint32_t image_compression;
-            uint32_t image_size;
-            uint32_t image_xcount;
-            uint32_t image_ycount;
-        } __attribute__((__packed__)) bmp_header;
-        if (qemu_fw_cfg_get_file("opt/wallpaper", &file) == 0) {
-            qemu_fw_cfg_read(file.selector, &bmp_header, sizeof(bmp_header), 0);
-            if (bmp_header.signature == 0x4d42) {
-                ramfb.width = bswap32(bmp_header.image_width);
-                ramfb.height = bswap32(bmp_header.image_height);
-                ramfb.stride = bswap32(bmp_header.image_width * (bmp_header.image_bpp / 8));
-                qemu_fw_cfg_write(ramfb_selector, &ramfb, sizeof(ramfb), 0);
-                qemu_fw_cfg_read(file.selector, fb, bmp_header.image_size, bmp_header.image_offset);
-            }
+    // Populate real mode handlers (maybe move this somewhere else)
+    uint16_t segment = 0xf000;
+    uint16_t offset = 0xd000;
+    uint16_t *ivt = (uint16_t *) 0x00;
+    for (int i = 0; i < 512; i++) {
+        if (i % 2) {
+            ivt[i] = segment;
         } else {
-            for (int i = 0; i < 1024 * 768; i++) {
-                fb[i] = 0xd3d3d3;
-            }
+            ivt[i] = offset;
+            offset += 16;
         }
     }
     print("lakebios: POST finished");
+    // Load bootsector from first disk
+    if (hal_disk_rw(0, (void *) 0x7c00, 0, 512, 0) == 0) {
+        uint16_t *bootsector = (uint16_t *) 0x7c00;
+        if (bootsector[255] == 0xaa55) {
+            print("lakebios: bootable drive found, jumping to it!\n\n");
+            // Jump to it
+            // Todo: modify this, this is crusty.
+            asm volatile(
+                "mov $0x10, %%ax\n\t"
+                "mov %%ax, %%ds\n\t"
+                "mov %%ax, %%es\n\t"
+                "mov %%ax, %%fs\n\t"
+                "mov %%ax, %%gs\n\t"
+                "mov %%ax, %%ss\n\t"
+                "jmp $0x08,$1f\n\t"
+                "1:\n\t"
+                "mov %%cr0, %%eax\n\t"
+                "and $~1, %%eax\n\t"
+                "mov %%eax, %%cr0\n\t"
+                "jmp $0x00,$0x7c00\n\t"
+                ::: "eax"
+            );
+        }
+    }
+    print("lakebios: no bootable disk found.");
     for (;;);
 }
