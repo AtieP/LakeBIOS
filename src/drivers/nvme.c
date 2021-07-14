@@ -152,7 +152,7 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
         disk.specific.nvme.queue_id = 1;
         disk.specific.nvme.head = 0;
         disk.specific.nvme.tail = 0;
-        hal_disk_submit(&disk);
+        hal_disk_submit(&disk, 0);
     }
     free(namespace_list, namespaces * sizeof(uint32_t));
     goto free_success;

@@ -8,7 +8,7 @@ static void handle_0e(struct apis_bios_regs *regs) {
 }
 
 void apis_bios_int10(struct apis_bios_regs *regs) {
-    uint8_t ah = (uint8_t) (regs->eax >> 8);
+    uint8_t ah = regs->ah;
     if (ah == 0x0e) {
         handle_0e(regs);
     }

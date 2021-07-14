@@ -143,7 +143,7 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     disk.specific.ahci.port = index;
     disk.specific.ahci.lba48 = lba48;
     disk.specific.ahci.drive = ATA_DRIVE_MASTER;
-    hal_disk_submit(&disk);
+    hal_disk_submit(&disk, 0);
     return 0;
 }
 

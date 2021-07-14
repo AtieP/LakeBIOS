@@ -48,3 +48,32 @@ void qemu_fw_cfg_write(uint16_t selector, const void *buf, size_t len, size_t of
     while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR);
 }
 
+int qemu_ramfb_detect() {
+    struct qemu_fw_cfg_file unused;
+    return qemu_fw_cfg_get_file("etc/ramfb", &unused);
+}
+
+int qemu_ramfb_resolution(uint64_t fb, uint32_t width, uint32_t height, uint32_t bpp) {
+    struct qemu_fw_cfg_file ramfb_file;
+    int ret = qemu_fw_cfg_get_file("etc/ramfb", &ramfb_file);
+    if (ret != 0) {
+        return -1;
+    }
+    // Why does this not work without volatile?
+    volatile struct {
+        uint64_t fb;
+        uint32_t model;
+        uint32_t flags;
+        uint32_t width;
+        uint32_t height;
+        uint32_t stride;
+    } __attribute__((__packed__)) ramfb;
+    ramfb.fb = bswap64(fb);
+    ramfb.model = bswap32(0x34325241);
+    ramfb.flags = 0;
+    ramfb.width = bswap32(width);
+    ramfb.height = bswap32(height);
+    ramfb.stride = bswap32(width * (bpp / 8));
+    qemu_fw_cfg_write(ramfb_file.selector, (const void *) &ramfb, sizeof(ramfb), 0);
+    return 0;
+}

@@ -43,7 +43,7 @@ struct disk_abstract {
     } specific;
 };
 
-void hal_disk_submit(struct disk_abstract *disk);
+void hal_disk_submit(struct disk_abstract *disk, int flp);
 int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write);
 
 #endif

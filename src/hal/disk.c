@@ -6,7 +6,8 @@
 #include <tools/string.h>
 
 static struct disk_abstract disk_inventory[256] = {0};
-static size_t disk_bios_dl = 0;
+static size_t disk_flp_dl = 0x00;
+static size_t disk_hdd_dl = 0x80;
 
 static const char *disk_type_to_name(int type) {
     switch (type) {
@@ -21,11 +22,17 @@ static const char *disk_type_to_name(int type) {
     }
 }
 
-void hal_disk_submit(struct disk_abstract *disk) {
+void hal_disk_submit(struct disk_abstract *disk, int flp) {
     print("lakebios: HAL: submitting a: %s", disk_type_to_name(disk->interface));
-    memcpy(&disk_inventory[disk_bios_dl], disk, sizeof(struct disk_abstract));
-    disk_inventory[disk_bios_dl].present = 1;
-    disk_bios_dl++;
+    if (!flp) {
+        memcpy(&disk_inventory[disk_hdd_dl], disk, sizeof(struct disk_abstract));
+        disk_inventory[disk_hdd_dl].present = 1;
+        disk_hdd_dl++;
+    } else {
+        memcpy(&disk_inventory[disk_flp_dl], disk, sizeof(struct disk_abstract));
+        disk_inventory[disk_flp_dl].present = 1;
+        disk_flp_dl++;
+    }
 }
 
 int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write) {

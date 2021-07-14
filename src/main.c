@@ -63,7 +63,7 @@ void bios_main() {
     }
     print("lakebios: POST finished");
     // Load bootsector from first disk
-    if (hal_disk_rw(0, (void *) 0x7c00, 0, 512, 0) == 0) {
+    if (hal_disk_rw(0x80, (void *) 0x7c00, 0, 512, 0) == 0) {
         uint16_t *bootsector = (uint16_t *) 0x7c00;
         if (bootsector[255] == 0xaa55) {
             print("lakebios: bootable drive found, jumping to it!\n\n");

@@ -37,4 +37,4 @@ run-i440fx-kvm:
 	qemu-system-x86_64 -M pc $(QEMUFLAGS) -enable-kvm
 
 clean:
-	rm $(OBJS) cblob.bin $(BIOS)
+	rm $(OBJS) blob.bin $(BIOS)
