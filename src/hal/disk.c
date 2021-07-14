@@ -34,7 +34,6 @@ int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write) {
         return -1;
     }
     if (disk_inventory[i].interface == HAL_DISK_AHCI) {
-        print("%x", disk_inventory[i].common.lba_max);
         if (disk_inventory[i].specific.ahci.atapi) {
             return -1;
         }
