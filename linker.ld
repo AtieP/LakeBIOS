@@ -8,6 +8,10 @@ SECTIONS {
     bios_raw_start = .;
     bios_data_start = .;
 
+    .smm_stack : {
+        *(.smm_stack*)
+    }
+
     .data : {
         *(.data*)
     }

@@ -4,6 +4,9 @@
 #include <tools/print.h>
 #include <tools/string.h>
 
+__attribute__((__section__(".smm_stack"), __used__))
+static uint8_t smm_stack[4096] = {0};
+
 static uint32_t smbase = SMM_DEFAULT_SMBASE;
 
 __attribute__((__section__(".smm_entry"), __used__))

@@ -1,7 +1,7 @@
 bios_size: equ 0x20000
 bios_init: equ 0xf1000
 smm_entry: equ 0xf0000
-
+smm_stack: equ 0xe0000
 
 org 0xe0000
 
@@ -49,7 +49,7 @@ smm_trampoline:
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov esp, 0xa7000
+    mov esp, smm_stack + 4096
 
     jmp dword 0x08:smm_entry
 
