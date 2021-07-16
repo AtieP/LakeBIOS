@@ -33,10 +33,6 @@ void bios_main() {
     }
     gdt_craft();
     gdt_reload(GDT_32_CS, GDT_32_DS);
-    if (ps2_init() != 0) {
-        print("lakebios: ps2 not initialized successfully. Halting.");
-        for (;;) {}
-    }
     // Print amount of memory
     print("lakebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
     print("lakebios: KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
@@ -49,6 +45,9 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
+    if (qemu_ramfb_detect() == 0) {
+        qemu_ramfb_resolution(0x100000, 600, 480, 32);
+    }
     // Populate real mode handlers (maybe move this somewhere else)
     uint16_t segment = 0xf000;
     uint16_t offset = 0xd000;
@@ -70,18 +69,20 @@ void bios_main() {
             // Jump to it
             // Todo: modify this, this is crusty.
             asm volatile(
-                "mov $0x10, %%ax\n\t"
-                "mov %%ax, %%ds\n\t"
-                "mov %%ax, %%es\n\t"
-                "mov %%ax, %%fs\n\t"
-                "mov %%ax, %%gs\n\t"
-                "mov %%ax, %%ss\n\t"
+                "movb $0xfb, (0x7bff)\n\t"
                 "jmp $0x08,$1f\n\t"
                 "1:\n\t"
                 "mov %%cr0, %%eax\n\t"
                 "and $~1, %%eax\n\t"
                 "mov %%eax, %%cr0\n\t"
-                "jmp $0x00,$0x7c00\n\t"
+                "xor %%ax, %%ax\n\t"
+                "mov %%ax, %%ds\n\t"
+                "mov %%ax, %%es\n\t"
+                "mov %%ax, %%fs\n\t"
+                "mov %%ax, %%gs\n\t"
+                "mov %%ax, %%ss\n\t"
+                "mov $0x7b00, %%esp\n\t"
+                "jmp $0x00,$0x7bff\n\t"
                 ::: "eax"
             );
         }

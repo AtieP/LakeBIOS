@@ -70,9 +70,9 @@ void pci_disable_interrupts(uint8_t bus, uint8_t slot, uint8_t function) {
     pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) | PCI_CFG_COMMAND_INT_DISABLE);
 }
 
-void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base) {
-    // TODO: if there are more root buses, enumerate them too
-    // TODO: pci to pci bridges
+void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base, uint8_t pirqa_line, uint8_t pirqb_line, uint8_t pirqc_line, uint8_t pirqd_line) {
+    // TODO: If there are more root buses, enumerate them too
+    // TODO: PCI to PCI bridges
     uint16_t vendor_id;
     for (int bus = 0; bus < 1; bus++) {
         for (int slot = 0; slot < 32; slot++) {
@@ -86,7 +86,7 @@ void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base) {
                 functions = 8;
             }
             for (int function = 0; function < functions; function++) {
-                // function exists?
+                // Function exists?
                 vendor_id = pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR);
                 if (vendor_id == 0x0000 || vendor_id == 0xffff) {
                     continue;
@@ -95,6 +95,17 @@ void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base) {
                     if (pci_bar_allocate(bus, slot, function, bar, mmio_base, io_base) == 2) {
                         bar++;
                     }
+                }
+                // Interrupt set up
+                uint8_t interrupt_pin = pci_cfg_read_byte(bus, slot, function, PCI_CFG_INTERRUPT_PIN);
+                if (interrupt_pin == 0x01) {
+                    pci_cfg_write_byte(bus, slot, function, PCI_CFG_INTERRUPT_LINE, pirqa_line);
+                } else if (interrupt_pin == 0x02) {
+                    pci_cfg_write_byte(bus, slot, function, PCI_CFG_INTERRUPT_LINE, pirqb_line);
+                } else if (interrupt_pin == 0x03) {
+                    pci_cfg_write_byte(bus, slot, function, PCI_CFG_INTERRUPT_LINE, pirqc_line);
+                } else if (interrupt_pin == 0x04) {
+                    pci_cfg_write_byte(bus, slot, function, PCI_CFG_INTERRUPT_LINE, pirqd_line);
                 }
             }
         }

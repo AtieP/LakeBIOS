@@ -61,5 +61,8 @@ struct apis_bios_regs {
 } __attribute__((__packed__));
 
 void apis_bios_int10(struct apis_bios_regs *regs);
+void apis_bios_int13(struct apis_bios_regs *regs);
+void apis_bios_int16(struct apis_bios_regs *regs);
+void apis_bios_int19(struct apis_bios_regs *regs);
 
 #endif

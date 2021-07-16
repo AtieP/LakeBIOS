@@ -16,6 +16,8 @@
 #define PCI_CFG_HEADER 0x0e
 #define PCI_CFG_BAR0 0x10
 #define PCI_CFG_EXPANSION_ROM 0x26
+#define PCI_CFG_INTERRUPT_LINE 0x3c
+#define PCI_CFG_INTERRUPT_PIN 0x3d
 
 #define PCI_CFG_COMMAND_IO_ENABLE (1 << 0)
 #define PCI_CFG_COMMAND_MEM_ENABLE (1 << 1)
@@ -41,7 +43,7 @@ void pci_disable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t function);
 void pci_enable_interrupts(uint8_t bus, uint8_t slot, uint8_t function);
 void pci_disable_interrupts(uint8_t bus, uint8_t slot, uint8_t function);
 
-void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base);
+void pci_enumerate(uintptr_t mmio_base, uintptr_t io_base, uint8_t pirqa_line, uint8_t pirqb_line, uint8_t pirqc_line, uint8_t pirqd_line);
 int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar, uintptr_t mmio_base, uintptr_t io_base);
 int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, size_t index);
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar);

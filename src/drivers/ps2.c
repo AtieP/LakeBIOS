@@ -21,8 +21,6 @@ static void keyboard_write(uint8_t data) {
 }
 
 static uint8_t mouse_read() {
-    poll_write();
-    outb(PS2_COMMAND, PS2_COMMAND_MOUSE);
     poll_read();
     return inb(PS2_DATA);
 }
@@ -172,7 +170,9 @@ int ps2_init() {
     }
     // Enable devices again
     ps2_controller_enable_keyb_port();
+    ps2_controller_enable_keyb_irqs();
     ps2_controller_enable_mouse_port();
+    ps2_controller_enable_mouse_irqs();
     // Reset them
     if (ps2_keyboard_reset() != 0) {
         print("lakebios: PS/2 keyboard failed to reset");
@@ -182,5 +182,6 @@ int ps2_init() {
         print("lakebios: PS/2 mouse failed to reset");
         return -1;
     }
+    ps2_keyboard_enable_scanning();
     return 0;
 }

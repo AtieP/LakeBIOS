@@ -32,6 +32,7 @@ real_mode_handler i
 %endrep
 
 smm_trampoline:
+    cli
     cld
 
     mov ax, 0xf000
@@ -71,7 +72,7 @@ early_init:
     mov es, ax
 
     mov si, .early_gdt
-    mov di, 0x400
+    mov di, 0x600
     mov cx, .early_gdt.end - .early_gdt
     rep movsb
 
@@ -115,7 +116,7 @@ early_init:
 
 .early_gdtr:
     dw .early_gdt.end - .early_gdt - 1
-    dd 0x400
+    dd 0x600
 
 times (bios_size - 16) - ($ - $$) db 0x00
 

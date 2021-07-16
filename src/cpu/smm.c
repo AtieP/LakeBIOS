@@ -15,9 +15,9 @@ static void smm_handler_main() {
     uint8_t command = inb(0xb2);
     uint8_t data = inb(0xb3);
     uint32_t revision = state->regs32.smrev & 0x2ffff;
-    print("lakebios: smm: Hello from SMM! Command: %d, Data: %d", command, data);
     if (command == 0x01) {
         // Command 0x01 for lakebios: Move SMBASE to 0xa0000
+        print("lakebios: smm: moving SMBASE from 0x30000 to 0xa0000");
         smbase = SMM_NEW_SMBASE;
         if (revision == SMM_REV_32) {
             // 32-bit
@@ -26,17 +26,76 @@ static void smm_handler_main() {
             // 64-bit
             state->regs64.smbase = smbase;
         } else {
-            print("Invalid revision?");
+            print("lakebios: smm: invalid revision. Halting.");
             for (;;) {}
         }
     }
     if (command == 0x10) {
-        // Command 0x02 for lakebios: real mode interrupt
+        // Command 0x10 for lakebios: real mode interrupt
+        // Create the register state
         struct apis_bios_regs regs;
+        if (revision == SMM_REV_32) {
+            regs.ebx = state->regs32.ebx;
+            regs.ecx = state->regs32.ecx;
+            regs.edx = state->regs32.edx;
+            regs.esi = state->regs32.esi;
+            regs.edi = state->regs32.edi;
+            regs.ebp = state->regs32.ebp;
+            regs.eflags = state->regs32.eflags;
+        } else if (revision == SMM_REV_64) {
+            regs.ebx = state->regs64.rbx;
+            regs.ecx = state->regs64.rcx;
+            regs.edx = state->regs64.rdx;
+            regs.esi = state->regs64.rsi;
+            regs.edi = state->regs64.rdi;
+            regs.ebp = state->regs64.rbp;
+            regs.eflags = state->regs64.rflags;
+        } else {
+            print("lakebios: smm: invalid revision. Halting.");
+            for (;;) {}
+        }
         asm volatile("mov %%cr2, %0" : "=r"(regs.eax));
-        print("lakebios: smm: int %xh, ah: %x", data, (uint8_t) (regs.eax >> 8));
+        print("lakebios: smm: real mode int %xh ah %xh", data, (uint8_t) (regs.eax >> 8));
         if (data == 0x10) {
             apis_bios_int10(&regs);
+        } else if (data == 0x13) {
+            apis_bios_int13(&regs);
+        } else if (data == 0x16) {
+            apis_bios_int16(&regs);
+        } else if (data == 0x19) {
+            apis_bios_int19(&regs);
+        } else {
+            for (;;) {}
+        }
+        if (revision == SMM_REV_32) {
+            state->regs32.eax = regs.eax;
+            state->regs32.ebx = regs.ebx;
+            state->regs32.ecx = regs.ecx;
+            state->regs32.edx = regs.edx;
+            state->regs32.esi = regs.esi;
+            state->regs32.edi = regs.edi;
+            state->regs32.ebp = regs.ebp;
+            state->regs32.eflags = regs.eflags;
+        } else if (revision == SMM_REV_64) {
+            state->regs64.rax &= ~0xffffffff;
+            state->regs64.rax |= regs.eax;
+            state->regs64.rbx &= ~0xffffffff;
+            state->regs64.rbx |= regs.ebx;
+            state->regs64.rcx &= ~0xffffffff;
+            state->regs64.rcx |= regs.ecx;
+            state->regs64.rdx &= ~0xffffffff;
+            state->regs64.rdx |= regs.edx;
+            state->regs64.rsi &= ~0xffffffff;
+            state->regs64.rsi |= regs.esi;
+            state->regs64.rdi &= ~0xffffffff;
+            state->regs64.rdi |= regs.edi;
+            state->regs64.rbp &= ~0xffffffff;
+            state->regs64.rbp |= regs.ebp;
+            state->regs64.rflags &= ~0xffffffff;
+            state->regs64.rflags |= regs.eflags;
+        } else {
+            print("lakebios: smm: invalid revision. Halting.");
+            for (;;) {}
         }
     }
     asm volatile("rsm");
