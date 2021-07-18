@@ -6,7 +6,7 @@
 #define PIC_SLAVE_CMD 0xa0
 #define PIC_SLAVE_DATA 0xa1
 
-#define PIC_ICW1_INIT (1 << 4)
+#define PIC_ICW1_INIT ((1 << 4) | (1 << 0))
 #define PIC_ICW4_8086 (1 << 0)
 
 void pic_init(uint8_t master_base, uint8_t slave_base);
