@@ -31,7 +31,6 @@ void q35_lpc_acpi_sci_irq(uint8_t irq) {
 void q35_lpc_pirq_enable(int pirq) {
     int pirq_base = pirq > 3 ? Q35_LPC_PIRQ_E : Q35_LPC_PIRQ_A;
     pirq = pirq > 3 ? pirq - 4 : pirq;
-    print("pirq_base %x pirq %x", pirq_base, pirq);
     pci_cfg_write_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq,
         (pci_cfg_read_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq) | Q35_LPC_PIRQ_EN));
 }
@@ -39,7 +38,6 @@ void q35_lpc_pirq_enable(int pirq) {
 void q35_lpc_pirq_disable(int pirq) {
     int pirq_base = pirq > 3 ? Q35_LPC_PIRQ_E : Q35_LPC_PIRQ_A;
     pirq = pirq > 3 ? pirq - 4 : pirq;
-    print("pirq_base %x pirq %x", pirq_base, pirq);
     pci_cfg_write_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq,
         (pci_cfg_read_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq) & ~Q35_LPC_PIRQ_EN));
 }
@@ -47,7 +45,6 @@ void q35_lpc_pirq_disable(int pirq) {
 void q35_lpc_pirq_route(int pirq, uint8_t irq) {
     int pirq_base = pirq > 3 ? Q35_LPC_PIRQ_E : Q35_LPC_PIRQ_A;
     pirq = pirq > 3 ? pirq - 4 : pirq;
-    print("pirq_base %x pirq %x", pirq_base, pirq);
     pci_cfg_write_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq,
         (pci_cfg_read_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq) & ~0b1111) | irq);
 }
