@@ -11,6 +11,9 @@ static uint32_t *fb = (uint32_t *) 0x100000;
 static void handle_0e(struct apis_bios_regs *regs) {
     if (regs->al == '\n') {
         goto newline;
+    } else if (regs->al == '\r') {
+        x = 0;
+        return;
     }
     const uint8_t *glyph = &romfont_8x16[regs->al * 16];
     for (int i = 0; i < 16; i++) {
@@ -25,8 +28,8 @@ static void handle_0e(struct apis_bios_regs *regs) {
     x += 8;
     if (x >= 600) {
         x = 0;
-        y += 16;
 newline:
+        y += 16;
     }
 }
 
