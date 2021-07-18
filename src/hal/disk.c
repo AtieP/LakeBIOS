@@ -106,3 +106,7 @@ int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write) {
     }
     return -1;
 }
+
+struct disk_abstract *hal_disk_get(uint8_t bios_dl) {
+    return &disk_inventory[bios_dl].present ? &disk_inventory[bios_dl] : NULL;
+}

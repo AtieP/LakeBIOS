@@ -81,6 +81,7 @@ void bios_main() {
                 "mov %%ax, %%fs\n\t"
                 "mov %%ax, %%gs\n\t"
                 "mov %%ax, %%ss\n\t"
+                "mov $0x80, %%dl\n\t"
                 "mov $0x7b00, %%esp\n\t"
                 "jmp $0x00,$0x7bff\n\t"
                 ::: "eax"

@@ -144,6 +144,8 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
         }
         struct disk_abstract disk;
         disk.common.lba_max = *((uint32_t *) (identify_buffer + 0));
+        disk.common.heads_per_cylinder = 16;
+        disk.common.sectors_per_head = 255;
         disk.interface = HAL_DISK_NVME;
         disk.specific.nvme.cfg = cfg;
         disk.specific.nvme.cq = io_completion_queue;

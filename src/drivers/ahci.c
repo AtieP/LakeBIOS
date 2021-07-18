@@ -138,6 +138,8 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     struct disk_abstract disk = {0};
     disk.interface = HAL_DISK_AHCI;
     disk.common.lba_max = ata_common_identify_sectors(identify_buffer, lba48);
+    disk.common.heads_per_cylinder = 16;
+    disk.common.sectors_per_head = 255;
     disk.specific.ahci.abar = abar;
     disk.specific.ahci.atapi = 0;
     disk.specific.ahci.port = index;

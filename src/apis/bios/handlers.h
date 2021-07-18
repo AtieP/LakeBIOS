@@ -53,11 +53,7 @@ struct apis_bios_regs {
     uint32_t edi;
     uint32_t ebp;
     uint32_t eflags;
-    uint32_t eip;
-    uint16_t cs;
-    uint16_t ds;
-    uint16_t es;
-    uint16_t ss;
+    uint32_t es;
 } __attribute__((__packed__));
 
 void apis_bios_int10(struct apis_bios_regs *regs);

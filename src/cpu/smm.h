@@ -36,7 +36,13 @@ struct smm_state {
             char reserved3[0x08];
         } __attribute__((__packed__)) regs32;
         struct {
-            char reserved1[0xfc];
+            struct {
+                uint16_t selector;
+                uint16_t attributes;
+                uint32_t limit;
+                uint64_t base;
+            } __attribute__((__packed__)) es;
+            char reserved1[0xec];
             uint32_t smrev;
             uint32_t smbase;
             char reserved2[0x6c];

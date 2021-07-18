@@ -56,6 +56,10 @@ void print(const char *msg, ...) {
                     outb(0xe9, string[i]);
                 }
             }
+            if (*msg == 'c') {
+                int ch = va_arg(args, int);
+                outb(0xe9, ch);
+            }
         } else {
             outb(0xe9, *msg);
         }

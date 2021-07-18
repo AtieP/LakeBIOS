@@ -16,7 +16,7 @@ static uint8_t bitmap[HEAP_SIZE / OBJECT_SIZE / 8] = {0};
 static uintptr_t alloc_base;
 
 void alloc_setup() {
-    // Reserve 16KB from low memory
+    // Reserve 64KB from low memory
     alloc_base = rtc_get_low_mem() - HEAP_SIZE;
 }
 

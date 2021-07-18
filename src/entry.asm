@@ -14,15 +14,15 @@ bits 16
 real_mode_handlers:
 
 %macro real_mode_handler 1
-align 16
+real_mode_handler_%1:
     ; This is insanity, but EAX needs to be preserved somehow :shrug:
     mov cr2, eax
     mov al, i
     out 0xb3, al
     mov al, 0x10
     out 0xb2, al
-    mov eax, cr2
     iret
+times 16 - ($ - real_mode_handler_%1) db 0x00
 %endmacro
 
 %assign i 0
@@ -30,6 +30,8 @@ align 16
 real_mode_handler i
 %assign i i + 1
 %endrep
+
+times 4096 - ($ - real_mode_handlers) db 0x00
 
 smm_trampoline:
     cli
@@ -72,7 +74,7 @@ early_init:
     mov es, ax
 
     mov si, .early_gdt
-    mov di, 0x600
+    mov di, 0xff00
     mov cx, .early_gdt.end - .early_gdt
     rep movsb
 
@@ -116,7 +118,7 @@ early_init:
 
 .early_gdtr:
     dw .early_gdt.end - .early_gdt - 1
-    dd 0x600
+    dd 0xff00
 
 times (bios_size - 16) - ($ - $$) db 0x00
 

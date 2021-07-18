@@ -30,6 +30,6 @@ uint8_t api_bios_bda_floppy_status_get() {
     return *((volatile uint8_t *) (bda + 0x41));
 }
 
-uint8_t api_bios_bda_floppy_disk_status_get() {
+uint8_t api_bios_bda_disk_status_get() {
     return *((volatile uint8_t *) (bda + 0x74));
 }

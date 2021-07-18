@@ -14,6 +14,8 @@ struct disk_abstract {
     int interface;
     struct {
         uint64_t lba_max;
+        uint8_t heads_per_cylinder;
+        uint8_t sectors_per_head;
     } common;
     union {
         struct {
@@ -45,5 +47,6 @@ struct disk_abstract {
 
 void hal_disk_submit(struct disk_abstract *disk, int flp);
 int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write);
+struct disk_abstract *hal_disk_get(uint8_t bios_dl);
 
 #endif

@@ -122,8 +122,8 @@ resend:
 
 void ps2_keyboard_enable_scanning() {
 resend:
-    mouse_write(PS2_KEYBOARD_COMMAND_SCANNING_EN);
-    uint8_t data = mouse_read();
+    keyboard_write(PS2_KEYBOARD_COMMAND_SCANNING_EN);
+    uint8_t data = keyboard_read();
     if (data == 0xfe) {
         goto resend;
     }
@@ -131,8 +131,8 @@ resend:
 
 void ps2_keyboard_disable_scanning() {
 resend:
-    mouse_write(PS2_KEYBOARD_COMMAND_SCANNING_DIS);
-    uint8_t data = mouse_read();
+    keyboard_write(PS2_KEYBOARD_COMMAND_SCANNING_DIS);
+    uint8_t data = keyboard_read();
     if (data == 0xfe) {
         goto resend;
     }
@@ -151,12 +151,15 @@ resend:
     return -1;
 }
 
+uint8_t ps2_keyboard_get_scancode() {
+    return keyboard_read();
+}
+
 int ps2_init() {
     // Disable devices
     ps2_controller_disable_keyb_port();
     ps2_controller_disable_mouse_port();
     // Flush keyboard buffer
-    inb(0x60);
     // Disable IRQs and keyboard translation
     ps2_controller_disable_keyb_irqs();
     ps2_controller_disable_mouse_irqs();
@@ -183,5 +186,9 @@ int ps2_init() {
         return -1;
     }
     ps2_keyboard_enable_scanning();
+    ps2_controller_enable_keyb_translation();
+    for (int i = 0; i < 32; i++) {
+        inb(0x60);
+    }
     return 0;
 }

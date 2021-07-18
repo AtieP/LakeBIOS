@@ -42,6 +42,8 @@ void ps2_controller_enable_keyb_translation();
 int ps2_keyboard_reset();
 void ps2_keyboard_enable_scanning();
 void ps2_keyboard_disable_scanning();
+uint8_t ps2_keyboard_get_scancode();
+void ps2_keyboard_scancode_set(uint8_t set);
 
 int ps2_mouse_reset();
 
