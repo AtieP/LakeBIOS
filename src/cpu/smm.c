@@ -17,17 +17,18 @@ static void smm_handler_main() {
     uint32_t revision = state->regs32.smrev & 0x2ffff;
     if (command == 0x01) {
         // Command 0x01 for lakebios: Move SMBASE to 0xa0000
-        print("lakebios: smm: moving SMBASE from 0x30000 to 0xa0000");
+        print("lakebios: smm: moving SMBASE to 0xa0000");
+        // If SMBASE is already 0xa0000 then the revision is 0
         smbase = SMM_NEW_SMBASE;
-        if (revision == SMM_REV_32) {
-            // 32-bit
-            state->regs32.smbase = smbase;
-        } else if (revision == SMM_REV_64) {
-            // 64-bit
-            state->regs64.smbase = smbase;
-        } else {
-            print("lakebios: smm: invalid revision. Halting.");
-            for (;;) {}
+        if (revision) {
+            if (revision == SMM_REV_32) {
+                state->regs32.smbase = smbase;
+            } else if (revision == SMM_REV_64) {
+                state->regs64.smbase = smbase;
+            } else {
+                print("lakebios: smm: invalid revision. Halting.");
+                for (;;) {}
+            }
         }
     }
     if (command == 0x10) {
