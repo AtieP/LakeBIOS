@@ -6,6 +6,7 @@
 #include <tools/alloc.h>
 #include <tools/print.h>
 #include <tools/string.h>
+#include <tools/wait.h>
 
 static int s64a_supported(volatile struct ahci_abar *abar) {
     return abar->ghc.hba_capabilities & AHCI_CAP_64;
@@ -89,9 +90,7 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     if (sss_supported(abar)) {
         // Staggered spinup
         port->command_status |= AHCI_PORT_CMD_STS_SUD;
-        for (volatile int i = 0; i < 1000; i++) {
-            inb(0x80);
-        }
+        wait(1000);
     }
     // Device must be brought up
     if ((port->sata_status & AHCI_PORT_SATA_STS_DET_MASK) != 3) {
@@ -101,9 +100,7 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     port->command_status |= AHCI_PORT_CMD_STS_FRE; // Otherwise, the status bits get stuck
     // Clear errors and wait the device for being ready
     port->sata_error |= port->sata_error;
-    for (volatile int i = 0; i < 1000; i++) {
-        inb(0x80);
-    }
+    wait(1000);
     if (port->task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ)) {
         port_deinit(abar, index);
         return -1;
