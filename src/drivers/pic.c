@@ -39,3 +39,29 @@ void pic_disable_irq(uint8_t irq) {
         return;
     }
 }
+
+void pic_set_level(uint8_t irq) {
+    if (irq > 15) {
+        print("lakebios: PIC: IRQ out of bounds (%d)", irq);
+        return;
+    }
+    if (irq > 7) {
+        irq -= 8;
+        outb(PIC_SLAVE_ELCR, inb(PIC_SLAVE_ELCR) | (1 << irq));
+    } else {
+        outb(PIC_MASTER_ELCR, inb(PIC_MASTER_ELCR) | (1 << irq));
+    }
+}
+
+void pic_set_edge(uint8_t irq) {
+    if (irq > 15) {
+        print("lakebios: PIC: IRQ out of bounds (%d)", irq);
+        return;
+    }
+    if (irq > 7) {
+        irq -= 8;
+        outb(PIC_SLAVE_ELCR, inb(PIC_SLAVE_ELCR) & ~(1 << irq));
+    } else {
+        outb(PIC_MASTER_ELCR, inb(PIC_MASTER_ELCR) & ~(1 << irq));
+    }
+}

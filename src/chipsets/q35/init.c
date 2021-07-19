@@ -36,22 +36,32 @@ static void smm_init() {
 }
 
 static void irqs_init() {
+    pic_init(8, 0xa0);
     // PIRQs
-    for (int i = 1; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         q35_lpc_pirq_disable(i);
     }
-    q35_lpc_pirq_route(0, 10);
-    q35_lpc_pirq_route(1, 11);
-    q35_lpc_pirq_route(2, 10);
-    q35_lpc_pirq_route(3, 11);
-    q35_lpc_pirq_enable(0);
-    q35_lpc_pirq_enable(1);
-    q35_lpc_pirq_enable(2);
-    q35_lpc_pirq_enable(3);
+    q35_lpc_pirq_route(0, Q35_LPC_PIRQ_A_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_A_IRQ);
+    q35_lpc_pirq_route(1, Q35_LPC_PIRQ_B_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_B_IRQ);
+    q35_lpc_pirq_route(2, Q35_LPC_PIRQ_C_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_C_IRQ);
+    q35_lpc_pirq_route(3, Q35_LPC_PIRQ_D_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_D_IRQ);
+    q35_lpc_pirq_route(4, Q35_LPC_PIRQ_E_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_E_IRQ);
+    q35_lpc_pirq_route(5, Q35_LPC_PIRQ_F_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_F_IRQ);
+    q35_lpc_pirq_route(6, Q35_LPC_PIRQ_G_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_G_IRQ);
+    q35_lpc_pirq_route(7, Q35_LPC_PIRQ_H_IRQ);
+    pic_set_level(Q35_LPC_PIRQ_H_IRQ);
+    for (int i = 0; i < 8; i++) {
+        q35_lpc_pirq_enable(i);
+    }
     // SCI
     q35_lpc_acpi_sci_irq(9);
-    // Others
-    pic_init(8, 0xa0);
 }
 
 static void isa_init() {
@@ -72,7 +82,9 @@ static void isa_init() {
 }
 
 static void pci_init() {
-    pci_enumerate(Q35_PCI_MMIO_BASE, Q35_PCI_IO_BASE, 10, 11, 10, 11);
+    pci_enumerate(
+        Q35_PCI_MMIO_BASE, Q35_PCI_IO_BASE,
+        Q35_LPC_PIRQ_A_IRQ, Q35_LPC_PIRQ_B_IRQ, Q35_LPC_PIRQ_C_IRQ, Q35_LPC_PIRQ_D_IRQ);
 }
 
 void q35_init() {
