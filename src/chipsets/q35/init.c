@@ -66,19 +66,10 @@ static void irqs_init() {
 
 static void isa_init() {
     // PS/2 init
-    q35_lpc_if_enable(Q35_LPC_IF_KBC);
     if (ps2_init() != 0) {
         print("lakebios: could not initialize PS/2. Halting.");
         for (;;) {}
     }
-    // Serial and parallel ports, also floppy init (but WIP)
-    q35_lpc_if_enable(Q35_LPC_IF_COMA | Q35_LPC_IF_COMB | Q35_LPC_IF_LPT | Q35_LPC_IF_FDD);
-    pci_cfg_write_word(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, Q35_LPC_ID,
-          (0 << 12) /* FDD range: 0x3f0-0x3f5, 0x3f7 */
-        | (0 << 8)  /* LPT range: 0x378-0x3f7, 0x778-0x77f */
-        | (1 << 4)  /* COMB range: 0x2f8-0x2ff */
-        | (0 << 0)  /* COMA range: 0x3f8-0x3ff */
-    );
 }
 
 static void pci_init() {

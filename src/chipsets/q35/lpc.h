@@ -38,13 +38,6 @@
 
 #define Q35_LPC_ID 0x80 // I/O decode (used for selecting the serial port and floppy ranges)
 
-#define Q35_LPC_IF_ENABLES 0x82
-#define Q35_LPC_IF_KBC (1 << 10)
-#define Q35_LPC_IF_FDD (1 << 3)
-#define Q35_LPC_IF_LPT (1 << 2)
-#define Q35_LPC_IF_COMB (1 << 1)
-#define Q35_LPC_IF_COMA (1 << 0)
-
 void q35_lpc_acpi_base(uint16_t base);
 void q35_lpc_acpi_enable();
 void q35_lpc_acpi_disable();

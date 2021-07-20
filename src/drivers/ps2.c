@@ -37,6 +37,7 @@ int ps2_controller_self_test() {
     outb(PS2_COMMAND, PS2_COMMAND_TEST);
     poll_read();
     if (inb(PS2_DATA) == 0x55) {
+        print("k");
         return 0;
     } else {
         return -1;

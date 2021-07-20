@@ -48,13 +48,3 @@ void q35_lpc_pirq_route(int pirq, uint8_t irq) {
     pci_cfg_write_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq,
         (pci_cfg_read_byte(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, pirq_base + pirq) & ~0b1111) | irq);
 }
-
-void q35_lpc_if_enable(uint16_t bits) {
-    pci_cfg_write_word(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, Q35_LPC_IF_ENABLES,
-        pci_cfg_read_word(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, Q35_LPC_IF_ENABLES) | bits);
-}
-
-void q35_lpc_if_disable(uint16_t bits) {
-    pci_cfg_write_word(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, Q35_LPC_IF_ENABLES,
-        pci_cfg_read_word(Q35_LPC_BUS, Q35_LPC_SLOT, Q35_LPC_FUNCTION, Q35_LPC_IF_ENABLES) & ~bits);
-}
