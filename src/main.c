@@ -16,8 +16,10 @@
 #include <tools/string.h>
 
 #include <drivers/pci.h>
+#include <drivers/video/romfont.h>
 #include <drivers/video/vga_std.h>
 #include <drivers/video/vga_modes.h>
+#include <drivers/video/vga_io.h>
 
 __attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
@@ -47,14 +49,21 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
-    // Try and a VGA mode
+    // Set VGA text mode
     vga_regs_write(
-        vga_mode_320x200x256_linear.misc,
-        vga_mode_320x200x256_linear.seq, vga_mode_320x200x256_linear.seq_len,
-        vga_mode_320x200x256_linear.crtc, vga_mode_320x200x256_linear.crtc_len,
-        vga_mode_320x200x256_linear.gfx, vga_mode_320x200x256_linear.gfx_len,
-        vga_mode_320x200x256_linear.attr, vga_mode_320x200x256_linear.attr_len);
-    *((volatile uint16_t *) 0xa0000) = 0x1234; // doesn't work, don't know why :(
+        vga_mode_80x25x16_text.misc,
+        vga_mode_80x25x16_text.seq, vga_mode_80x25x16_text.seq_len,
+        vga_mode_80x25x16_text.crtc, vga_mode_80x25x16_text.crtc_len,
+        vga_mode_80x25x16_text.gfx, vga_mode_80x25x16_text.gfx_len,
+        vga_mode_80x25x16_text.attr, vga_mode_80x25x16_text.attr_len,
+        vga_mode_80x25x16_text.pallete, vga_mode_80x25x16_text.pallete_entries);
+    vga_font_write(romfont_8x16, 16);
+    // Fill with As because why not?
+    for (int i = 0; i < 2000; i++) {
+        *((volatile uint16_t *) 0xb8000 + i) = 0x0761;
+    }
+    vga_cursor_set_pos(38 + (80 * 11));
+    vga_cursor_shape(1, 16, 1);
     if (qemu_ramfb_detect() == 0) {
         qemu_ramfb_resolution(0x100000, 600, 480, 32);
     }

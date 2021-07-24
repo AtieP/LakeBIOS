@@ -1,18 +1,19 @@
 #include <drivers/video/vga_io.h>
 #include <drivers/video/vga_modes.h>
+#include <drivers/video/vga_palletes.h>
 
-// 80x25 text
-#define mode_80x25_text_misc 0x67
+// 80x25x16 text
+#define mode_80x25x16_text_misc 0x67
 
-static const uint8_t mode_80x25_text_seq[][2] = {
+static const uint8_t mode_80x25x16_text_seq[][2] = {
     {VGA_SEQ_RESET, 0x03},
     {VGA_SEQ_CLOCKING, 0x00},
     {VGA_SEQ_MAP_MASK, 0x03},
-    {VGA_SEQ_CHAR_MAP_SEL, 0x00},
+    {VGA_SEQ_CHAR_MAP_SEL, 0x3a},
     {VGA_SEQ_MEM_MODE, 0x02}
 };
 
-static const uint8_t mode_80x25_text_crtc[][2] = {
+static const uint8_t mode_80x25x16_text_crtc[][2] = {
     {VGA_CRTC_HORIZONTAL_TOTAL, 0x5f},
     {VGA_CRTC_HORIZONTAL_DISPLAY_END, 0x4f},
     {VGA_CRTC_HORIZONTAL_BLANK_START, 0x50},
@@ -33,7 +34,7 @@ static const uint8_t mode_80x25_text_crtc[][2] = {
     {VGA_CRTC_MODE_CONTROL, 0xa3}
 };
 
-static const uint8_t mode_80x25_text_gfx[][2] = {
+static const uint8_t mode_80x25x16_text_gfx[][2] = {
     {VGA_GFX_SET_RESET, 0x00},
     {VGA_GFX_EN_SET_RESET, 0x00},
     {VGA_GFX_COLOR_CMP, 0x00},
@@ -45,7 +46,7 @@ static const uint8_t mode_80x25_text_gfx[][2] = {
     {VGA_GFX_BIT_MASK, 0xff}
 };
 
-static const uint8_t mode_80x25_text_attr[][2] = {
+static const uint8_t mode_80x25x16_text_attr[][2] = {
     {0x00, 0x00},
     {0x01, 0x01},
     {0x02, 0x02},
@@ -138,16 +139,18 @@ static const uint8_t mode_320x200x256_linear_attr[][2] = {
 };
 
 // Struct definitions here
-struct vga_mode vga_mode_80x25_text = {
-    .misc = mode_80x25_text_misc,
-    .seq = mode_80x25_text_seq,
-    .seq_len = sizeof(mode_80x25_text_seq) / 2,
-    .crtc = mode_80x25_text_crtc,
-    .crtc_len = sizeof(mode_80x25_text_crtc) / 2,
-    .gfx = mode_80x25_text_gfx,
-    .gfx_len = sizeof(mode_80x25_text_gfx) / 2,
-    .attr = mode_80x25_text_attr,
-    .attr_len = sizeof(mode_80x25_text_attr) / 2
+struct vga_mode vga_mode_80x25x16_text = {
+    .misc = mode_80x25x16_text_misc,
+    .seq = mode_80x25x16_text_seq,
+    .seq_len = sizeof(mode_80x25x16_text_seq) / 2,
+    .crtc = mode_80x25x16_text_crtc,
+    .crtc_len = sizeof(mode_80x25x16_text_crtc) / 2,
+    .gfx = mode_80x25x16_text_gfx,
+    .gfx_len = sizeof(mode_80x25x16_text_gfx) / 2,
+    .attr = mode_80x25x16_text_attr,
+    .attr_len = sizeof(mode_80x25x16_text_attr) / 2,
+    .pallete = vga_pallete_16,
+    .pallete_entries = vga_pallete_16_len
 };
 
 struct vga_mode vga_mode_320x200x256_linear = {
@@ -159,5 +162,5 @@ struct vga_mode vga_mode_320x200x256_linear = {
     .gfx = mode_320x200x256_linear_gfx,
     .gfx_len = sizeof(mode_320x200x256_linear_gfx) / 2,
     .attr = mode_320x200x256_linear_attr,
-    .attr_len = sizeof(mode_320x200x256_linear_attr) / 2
+    .attr_len = sizeof(mode_320x200x256_linear_attr) / 2,
 };

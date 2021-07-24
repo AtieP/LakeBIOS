@@ -13,8 +13,11 @@ struct vga_mode {
     int gfx_len;
     const uint8_t (*attr)[2];
     int attr_len;
+    const uint8_t (*pallete)[3];
+    int pallete_entries;
 };
 
-extern struct vga_mode vga_mode_80x25_text;
+extern struct vga_mode vga_mode_80x25x16_text;
 extern struct vga_mode vga_mode_320x200x256_linear;
+
 #endif

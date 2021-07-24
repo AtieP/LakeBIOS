@@ -68,6 +68,10 @@
 #define VGA_AC_HORIZONTAL_PIXEL_PAN 0x13
 #define VGA_AC_COLOR_SELECT 0x14
 
+#define VGA_DAC_ADDR_READ 0x3c7
+#define VGA_DAC_ADDR_WRITE 0x3c8
+#define VGA_DAC_DATA 0x3c9
+
 static inline uint8_t vga_gfx_read(uint8_t index) {
     outb(VGA_GFX_ADDR, index);
     return inb(VGA_GFX_DATA);
@@ -114,6 +118,24 @@ static inline uint8_t vga_misc_read() {
 
 static inline void vga_misc_write(uint8_t value) {
     outb(VGA_MISC_WRITE, value);
+}
+
+static inline void vga_dac_read(uint8_t index, uint8_t (*values)[3], int len) {
+    outb(VGA_DAC_ADDR_READ, index);
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < 3; j++) {
+            values[i][j] = inb(VGA_DAC_DATA);
+        }
+    }
+}
+
+static inline void vga_dac_write(uint8_t index, const uint8_t (*values)[3], int len) {
+    outb(VGA_DAC_ADDR_WRITE, index);
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < 3; j++) {
+            outb(VGA_DAC_DATA, values[i][j]);
+        }
+    }
 }
 
 #endif
