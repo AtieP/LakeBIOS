@@ -47,7 +47,7 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
-    // Try and set text mode
+    // Try and a VGA mode
     vga_regs_write(
         vga_mode_320x200x256_linear.misc,
         vga_mode_320x200x256_linear.seq, vga_mode_320x200x256_linear.seq_len,
