@@ -49,11 +49,12 @@ void bios_main() {
     nvme_init();
     // Try and set text mode
     vga_regs_write(
-        vga_mode_80x25_text.misc,
-        vga_mode_80x25_text.seq, vga_mode_80x25_text.seq_len,
-        vga_mode_80x25_text.crtc, vga_mode_80x25_text.crtc_len,
-        vga_mode_80x25_text.gfx, vga_mode_80x25_text.gfx_len,
-        vga_mode_80x25_text.attr, vga_mode_80x25_text.attr_len);
+        vga_mode_320x200x256_linear.misc,
+        vga_mode_320x200x256_linear.seq, vga_mode_320x200x256_linear.seq_len,
+        vga_mode_320x200x256_linear.crtc, vga_mode_320x200x256_linear.crtc_len,
+        vga_mode_320x200x256_linear.gfx, vga_mode_320x200x256_linear.gfx_len,
+        vga_mode_320x200x256_linear.attr, vga_mode_320x200x256_linear.attr_len);
+    *((volatile uint16_t *) 0xa0000) = 0x1234; // doesn't work, don't know why :(
     if (qemu_ramfb_detect() == 0) {
         qemu_ramfb_resolution(0x100000, 600, 480, 32);
     }

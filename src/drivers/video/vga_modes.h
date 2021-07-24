@@ -16,5 +16,5 @@ struct vga_mode {
 };
 
 extern struct vga_mode vga_mode_80x25_text;
-
+extern struct vga_mode vga_mode_320x200x256_linear;
 #endif
