@@ -16,6 +16,8 @@
 #include <tools/string.h>
 
 #include <drivers/pci.h>
+#include <drivers/video/vga_std.h>
+#include <drivers/video/vga_modes.h>
 
 __attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
@@ -45,6 +47,13 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
+    // Try and set text mode
+    vga_regs_write(
+        vga_mode_80x25_text.misc,
+        vga_mode_80x25_text.seq, vga_mode_80x25_text.seq_len,
+        vga_mode_80x25_text.crtc, vga_mode_80x25_text.crtc_len,
+        vga_mode_80x25_text.gfx, vga_mode_80x25_text.gfx_len,
+        vga_mode_80x25_text.attr, vga_mode_80x25_text.attr_len);
     if (qemu_ramfb_detect() == 0) {
         qemu_ramfb_resolution(0x100000, 600, 480, 32);
     }

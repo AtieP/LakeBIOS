@@ -1,4 +1,4 @@
-CFILES := $(shell find . -type f -name '*.c')
+CFILES := $(shell find src/ -type f -name '*.c')
 LDFILE := linker.ld
 OBJS := $(ASFILES:.asm=.o) $(CFILES:.c=.o)
 BIOS = lakebios.bin
@@ -13,7 +13,7 @@ LD = ld
 LDFLAGS := -T$(LDFILE) -nostdlib -m elf_i386 -static -n
 
 QEMU = qemu-system-x86_64
-QEMUFLAGS := -no-reboot -bios $(BIOS) -debugcon stdio -vga none -device ramfb -fw_cfg "opt/wallpaper",file=wallpaper.bmp
+QEMUFLAGS := -no-reboot -bios $(BIOS) -debugcon stdio -device ramfb -fw_cfg "opt/wallpaper",file=wallpaper.bmp
 
 all: $(BIOS)
 
