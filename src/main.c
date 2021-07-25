@@ -60,7 +60,7 @@ void bios_main() {
     vga_font_write(romfont_8x16, 16);
     // Fill with As because why not?
     for (int i = 0; i < 2000; i++) {
-        *((volatile uint16_t *) 0xb8000 + i) = 0x0761;
+        *((volatile uint16_t *) 0xb8000 + i) = 0x0f61;
     }
     vga_cursor_set_pos(38 + (80 * 11));
     vga_cursor_shape(1, 16, 1);

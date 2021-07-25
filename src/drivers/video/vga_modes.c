@@ -163,4 +163,6 @@ struct vga_mode vga_mode_320x200x256_linear = {
     .gfx_len = sizeof(mode_320x200x256_linear_gfx) / 2,
     .attr = mode_320x200x256_linear_attr,
     .attr_len = sizeof(mode_320x200x256_linear_attr) / 2,
+    .pallete = vga_pallete_256,
+    .pallete_entries = vga_pallete_256_len
 };
