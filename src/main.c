@@ -17,6 +17,7 @@
 
 #include <drivers/pci.h>
 #include <drivers/video/romfont.h>
+#include <drivers/video/vga_bochs.h>
 #include <drivers/video/vga_std.h>
 #include <drivers/video/vga_modes.h>
 #include <drivers/video/vga_io.h>
@@ -43,8 +44,6 @@ void bios_main() {
     print("lakebios: KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
     // Set up allocator
     alloc_setup();
-    // Enable PIC
-    pic_init(8, 0xa0);
     // AHCI
     ahci_init();
     // NVME
@@ -61,11 +60,6 @@ void bios_main() {
     // Fill with As because why not?
     for (int i = 0; i < 2000; i++) {
         *((volatile uint16_t *) 0xb8000 + i) = 0x0f61;
-    }
-    vga_cursor_set_pos(38 + (80 * 11));
-    vga_cursor_shape(1, 16, 1);
-    if (qemu_ramfb_detect() == 0) {
-        qemu_ramfb_resolution(0x100000, 600, 480, 32);
     }
     // Populate real mode handlers (maybe move this somewhere else)
     uint16_t segment = 0xf000;
