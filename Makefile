@@ -38,3 +38,9 @@ run-i440fx-kvm:
 
 clean:
 	rm $(OBJS) blob.bin $(BIOS)
+
+graph:
+	cflow2dot -i $(CFILES) -f dot --source bios_main
+	cat *.dot | gvpack -o svg.dot
+	dot -Tsvg svg.dot > graph.svg
+	rm *.dot
