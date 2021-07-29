@@ -50,7 +50,6 @@ void bga_resolution(int x, int y, int bpp, int clear) {
     bga_write(BGA_ENABLE, 0x01 | (!clear ? 0x80 : 0x00));
 }
 
-// Fix this. This doesn't go back to normal VGA operation.
 void bga_deinit() {
     bga_write(BGA_ENABLE, 0x00);
 }

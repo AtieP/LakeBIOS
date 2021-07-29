@@ -12,6 +12,20 @@ static void unlock_crtc() {
 
 // Flushes the VGA registers
 void vga_regs_write(uint8_t misc, const uint8_t (*seq)[2], int seq_len, const uint8_t (*crtc)[2], int crtc_len, const uint8_t (*gfx)[2], int gfx_len, const uint8_t (*attr)[2], int attr_len, const uint8_t (*pallete)[3], int pallete_entries) {
+    static int initialized = 0;
+    if (initialized) {
+        // Disable planes 0-3
+        vga_gfx_write(VGA_GFX_SET_RESET, 0x00);
+        vga_gfx_write(VGA_GFX_EN_SET_RESET, 0x00);
+        // Disable display and turn off planes 0-3
+        vga_seq_write(VGA_SEQ_CLOCKING, vga_seq_read(0x01) | (1 << 5));
+        vga_seq_write(VGA_SEQ_MAP_MASK, 0x00);
+        // Disable RAM decoding
+        vga_misc_write(vga_misc_read() & ~(1 << 1));
+        outb(VGA_AC_WRITE, 0x00);
+    } else {
+        initialized = 1;
+    }
     vga_misc_write(misc);
     unlock_crtc();
     for (int i = 0; i < seq_len; i++) {
