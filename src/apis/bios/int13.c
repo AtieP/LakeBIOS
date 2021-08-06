@@ -9,9 +9,9 @@ static uint64_t chs_to_lba(uint16_t cylinder, uint8_t head, uint8_t sector, uint
 
 static void handle_00(struct apis_bios_regs *regs) {
     if (regs->dl & (1 << 7)) {
-        api_bios_bda_disk_status_set(0x00);
+        bda_write8(BDA_DISK_STATUS, 0x00);
     } else {
-        api_bios_bda_floppy_status_set(0x00);
+        bda_write8(BDA_FLOPPY_STATUS, 0x00);
     }
     regs->ah = 0x00;
     regs->eflags &= ~1;
@@ -19,9 +19,9 @@ static void handle_00(struct apis_bios_regs *regs) {
 
 static void handle_01(struct apis_bios_regs *regs) {
     if (regs->dl & (1 << 7)) {
-        regs->ah = api_bios_bda_disk_status_get();
+        regs->ah = bda_read8(BDA_DISK_STATUS);
     } else {
-        regs->ah = api_bios_bda_floppy_status_get();
+        regs->ah = bda_read8(BDA_FLOPPY_STATUS);
     }
     if (regs->ah) {
         regs->eflags |= 1;
@@ -53,9 +53,9 @@ static void handle_02_03(struct apis_bios_regs *regs, int write) {
     }
 end:
     if (regs->dl & (1 << 7)) {
-        api_bios_bda_disk_status_set(status);
+        bda_write8(BDA_DISK_STATUS, status);
     } else {
-        api_bios_bda_floppy_status_set(status);
+        bda_write8(BDA_FLOPPY_STATUS, status);
     }
     regs->ah = status;
     if (status) {

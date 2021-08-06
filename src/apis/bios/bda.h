@@ -5,16 +5,18 @@
 
 #define APIS_BIOS_BDA 0x400
 
-void api_bios_bda_com_set(int com, uint16_t addr);
-void api_bios_bda_lpt_set(int lpt, uint16_t addr);
-uint16_t api_bios_bda_com_get(int com);
-uint16_t api_bios_bda_lpt_get(int lpt);
+#define bda_write8(offset, value) (*((volatile uint8_t *) (APIS_BIOS_BDA + offset)) = value)
+#define bda_read8(offset) (*((volatile uint8_t *) (APIS_BIOS_BDA + offset)))
+#define bda_write16(offset, value) (*((volatile uint16_t *) (APIS_BIOS_BDA + offset)) = value)
+#define bda_read16(offset) (*((volatile uint16_t *) (APIS_BIOS_BDA + offset)))
 
-void api_bios_bda_floppy_status_set(uint8_t status);
-void api_bios_bda_disk_status_set(uint8_t status);
-uint8_t api_bios_bda_floppy_status_get();
-uint8_t api_bios_bda_disk_status_get();
-
-void api_bios_bda_update_keyb_buffer(uint8_t scancode);
+#define BDA_FLOPPY_STATUS 0x41
+#define BDA_VIDEO_MODE 0x49
+#define BDA_SCREEN_COLUMNS 0x4a
+#define BDA_CURSOR_END_SCAN 0x60
+#define BDA_CURSOR_START_SCAN 0x61
+#define BDA_ACTIVE_PAGE 0x62
+#define BDA_CURSOR_POSITION (page) (0x63 + (page * 2))
+#define BDA_DISK_STATUS 0x74
 
 #endif

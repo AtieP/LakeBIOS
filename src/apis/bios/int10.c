@@ -1,7 +1,6 @@
-#include <cpu/pio.h>
+#include <stdint.h>
 #include <apis/bios/handlers.h>
-#include <drivers/video/romfont.h>
-#include <paravirt/qemu.h>
+#include <hal/display.h>
 #include <tools/print.h>
 
 static void handle_00(struct apis_bios_regs *regs) {

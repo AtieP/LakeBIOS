@@ -53,7 +53,7 @@ int qemu_ramfb_detect() {
     return qemu_fw_cfg_get_file("etc/ramfb", &unused);
 }
 
-int qemu_ramfb_resolution(uint64_t fb, uint32_t width, uint32_t height, uint32_t bpp) {
+int qemu_ramfb_resolution(uint64_t fb, uint32_t width, uint32_t height, uint32_t bpp, int clear) {
     struct qemu_fw_cfg_file ramfb_file;
     int ret = qemu_fw_cfg_get_file("etc/ramfb", &ramfb_file);
     if (ret != 0) {
@@ -75,5 +75,11 @@ int qemu_ramfb_resolution(uint64_t fb, uint32_t width, uint32_t height, uint32_t
     ramfb.height = bswap32(height);
     ramfb.stride = bswap32(width * (bpp / 8));
     qemu_fw_cfg_write(ramfb_file.selector, (const void *) &ramfb, sizeof(ramfb), 0);
+    if (clear) {
+        uint8_t *fb = (uint8_t *) (uintptr_t) fb;
+        for (size_t i = 0; i < width * (bpp / 8) * height; i++) {
+            fb[i] = 0;
+        }
+    }
     return 0;
 }

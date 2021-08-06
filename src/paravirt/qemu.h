@@ -31,6 +31,6 @@ int qemu_fw_cfg_get_file(char *filename, struct qemu_fw_cfg_file *info);
 void qemu_fw_cfg_read(uint16_t selector, void *buf, size_t len, size_t offset);
 void qemu_fw_cfg_write(uint16_t selector, const void *buf, size_t len, size_t offset);
 int qemu_ramfb_detect();
-int qemu_ramfb_resolution(uint64_t fb, uint32_t width, uint32_t height, uint32_t bpp);
+int qemu_ramfb_resolution(uint64_t fb, uint32_t width, uint32_t height, uint32_t bpp, int clear);
 
 #endif

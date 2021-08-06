@@ -9,6 +9,7 @@
 #include <drivers/ps2.h>
 #include <drivers/rtc.h>
 #include <hal/disk.h>
+#include <hal/display.h>
 #include <paravirt/qemu.h>
 #include <tools/alloc.h>
 #include <tools/bswap.h>
@@ -21,6 +22,26 @@
 #include <drivers/video/vga_std.h>
 #include <drivers/video/vga_modes.h>
 #include <drivers/video/vga_io.h>
+
+static void puts_display(const char *string) {
+    static int x = 0;
+    static int y = 0;
+    while (*string) {
+        if (*string == '\n') {
+            x = 0;
+            y++;
+            string++;
+            continue;
+        }
+        if (x >= 80) {
+            x = 0;
+            y++;
+        }
+        hal_display_plot_char(0x00, *string, x, y, 0x00, 0x07);
+        x++;
+        string++;
+    }
+}
 
 __attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
@@ -49,18 +70,12 @@ void bios_main() {
     // NVME
     nvme_init();
     // Set VGA text mode
-    vga_regs_write(
-        vga_mode_80x25x16_text.misc,
-        vga_mode_80x25x16_text.seq, vga_mode_80x25x16_text.seq_len,
-        vga_mode_80x25x16_text.crtc, vga_mode_80x25x16_text.crtc_len,
-        vga_mode_80x25x16_text.gfx, vga_mode_80x25x16_text.gfx_len,
-        vga_mode_80x25x16_text.attr, vga_mode_80x25x16_text.attr_len,
-        vga_mode_80x25x16_text.pallete, vga_mode_80x25x16_text.pallete_entries);
-    vga_font_write(romfont_8x16, 16);
-    // Fill with As because why not?
-    for (int i = 0; i < 2000; i++) {
-        *((volatile uint16_t *) 0xb8000 + i) = 0x0f61;
-    }
+    struct display_abstract vga;
+    vga.interface = HAL_DISPLAY_VGA_BGA;
+    hal_display_submit(&vga);
+    hal_display_resolution(0x00, 80, 25, 4, 1, 1, 0);
+    hal_display_font_set(0x00, romfont_8x16, 8, 16);
+    puts_display("LakeBIOS - x86 Firmware\nMade by Atie - https://github.com/AtieP/LakeBIOS\n\n");
     // Populate real mode handlers (maybe move this somewhere else)
     uint16_t segment = 0xf000;
     uint16_t offset = 0xd000;
@@ -73,8 +88,10 @@ void bios_main() {
             offset += 16;
         }
     }
+    qemu_fw_cfg_get_file("eeeeeeeeeeeeee", NULL);
     print("lakebios: POST finished");
     // Load bootsector from first disk
+    puts_display("Booting...\n");
     if (hal_disk_rw(0x80, (void *) 0x7c00, 0, 512, 0) == 0) {
         uint16_t *bootsector = (uint16_t *) 0x7c00;
         if (bootsector[255] == 0xaa55) {
@@ -101,6 +118,7 @@ void bios_main() {
             );
         }
     }
+    puts_display("No bootable drive found. Halting.");
     print("lakebios: no bootable disk found.");
     for (;;);
 }

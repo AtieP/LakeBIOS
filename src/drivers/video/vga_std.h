@@ -8,6 +8,7 @@ void vga_font_write(const uint8_t *font, int height);
 void vga_font_read(uint8_t *font, int bank);
 void vga_cursor_set_pos(uint16_t pos);
 void vga_cursor_get_pos(uint16_t *pos);
-void vga_cursor_shape(uint8_t start, uint8_t end, int enable);
+void vga_cursor_set_shape(uint8_t start, uint8_t end, uint8_t flags);
+void vga_cursor_get_shape(uint8_t *start, uint8_t *end, uint8_t *flags);
 
 #endif

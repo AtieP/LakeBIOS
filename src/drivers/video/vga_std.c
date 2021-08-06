@@ -89,7 +89,14 @@ void vga_cursor_get_pos(uint16_t *pos) {
     *pos = ((uint16_t) hi << 8) | lo;
 }
 
-void vga_cursor_shape(uint8_t start, uint8_t end, int enable) {
-    vga_crtc_write(VGA_CRTC_CURSOR_START, start & ~(enable ? (1 << 5) : 0xff));
+void vga_cursor_set_shape(uint8_t start, uint8_t end, uint8_t flags) {
+    vga_crtc_write(VGA_CRTC_CURSOR_START, start | (flags << 5));
     vga_crtc_write(VGA_CRTC_CURSOR_END, end);
+}
+
+void vga_cursor_get_shape(uint8_t *start, uint8_t *end, uint8_t *flags) {
+    uint8_t start_flags = vga_crtc_read(VGA_CRTC_CURSOR_START);
+    *start = start_flags & 0b11111;
+    *flags = (start_flags >> 5) & 0b11;
+    *end = vga_crtc_read(VGA_CRTC_CURSOR_END);
 }
