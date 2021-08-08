@@ -88,7 +88,6 @@ void bios_main() {
             offset += 16;
         }
     }
-    qemu_fw_cfg_get_file("eeeeeeeeeeeeee", NULL);
     print("lakebios: POST finished");
     // Load bootsector from first disk
     puts_display("Booting...\n");

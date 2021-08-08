@@ -50,10 +50,16 @@ struct apis_bios_regs {
         };
         uint32_t esi;
     };
-    uint32_t edi;
+    union {
+        struct {
+            uint16_t di;
+        };
+        uint32_t edi;
+    };
     uint32_t ebp;
     uint32_t eflags;
     uint32_t es;
+    uint32_t ds;
 } __attribute__((__packed__));
 
 void apis_bios_int10(struct apis_bios_regs *regs);

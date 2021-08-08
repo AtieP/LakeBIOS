@@ -44,6 +44,7 @@ static void smm_handler_main() {
             regs.ebp = state->regs32.ebp;
             regs.eflags = state->regs32.eflags;
             regs.es = *((uint32_t *) (smbase + 0xffa8)) << 4;
+            regs.ds = *((uint32_t *) (smbase + 0xffb4)) << 4;
         } else if (revision == SMM_REV_64) {
             regs.ebx = state->regs64.rbx;
             regs.ecx = state->regs64.rcx;
@@ -53,6 +54,7 @@ static void smm_handler_main() {
             regs.ebp = state->regs64.rbp;
             regs.eflags = state->regs64.rflags;
             regs.es = state->regs64.es.base;
+            regs.ds = state->regs64.ds.base;
         } else {
             print("lakebios: smm: invalid revision. Halting.");
             for (;;) {}

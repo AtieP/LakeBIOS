@@ -42,7 +42,25 @@ struct smm_state {
                 uint32_t limit;
                 uint64_t base;
             } __attribute__((__packed__)) es;
-            char reserved1[0xec];
+            struct {
+                uint16_t selector;
+                uint16_t attributes;
+                uint32_t limit;
+                uint64_t base;
+            } __attribute__((__packed__)) cs;
+            struct {
+                uint16_t selector;
+                uint16_t attributes;
+                uint32_t limit;
+                uint64_t base;
+            } __attribute__((__packed__)) ss;
+            struct {
+                uint16_t selector;
+                uint16_t attributes;
+                uint32_t limit;
+                uint64_t base;
+            } __attribute__((__packed__)) ds;
+            char reserved1[0xbc];
             uint32_t smrev;
             uint32_t smbase;
             char reserved2[0x6c];
