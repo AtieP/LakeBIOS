@@ -1,6 +1,8 @@
 #ifndef __APIS_BIOS_REGS_H__
 #define __APIS_BIOS_REGS_H__
 
+#include <stdint.h>
+
 struct apis_bios_regs {
     union {
         struct {
