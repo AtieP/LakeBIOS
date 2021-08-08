@@ -1,4 +1,4 @@
-#include <apis/bios/handlers.h>
+#include <apis/bios/regs.h>
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <tools/print.h>
@@ -61,18 +61,7 @@ static void smm_handler_main() {
         }
         asm volatile("mov %%cr2, %0" : "=r"(regs.eax));
         print("lakebios: smm: real mode int %xh ah %xh", data, (uint8_t) (regs.eax >> 8));
-        if (data == 0x10) {
-            apis_bios_int10(&regs);
-        } else if (data == 0x13) {
-            apis_bios_int13(&regs);
-        } else if (data == 0x16) {
-            apis_bios_int16(&regs);
-        } else if (data == 0x19) {
-            apis_bios_int19(&regs);
-        } else {
-            print("lakebios: bios: handler not available.");
-            for (;;) {}
-        }
+        for (;;) {}
         if (revision == SMM_REV_32) {
             state->regs32.eax = regs.eax;
             state->regs32.ebx = regs.ebx;
