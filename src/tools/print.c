@@ -10,6 +10,7 @@ static void puts(const char *msg) {
 }
 
 void print(const char *msg, ...) {
+    puts("lakebios: ");
     va_list args;
     va_start(args, msg);
     while (*msg) {

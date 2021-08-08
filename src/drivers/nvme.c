@@ -170,26 +170,26 @@ free_success:
 }
 
 void nvme_init() {
-    print("lakebios: NVME: initializing controllers");
+    print("NVME: Initializing controllers");
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t nvme_bus;
         uint8_t nvme_slot;
         uint8_t nvme_function;
         if (pci_get_device(NVME_CLASS, NVME_SUBCLASS, NVME_INTERFACE, &nvme_bus, &nvme_slot, &nvme_function, i) == 0) {
-            print("lakebios: NVME: controller found at bus %d slot %d function %d", nvme_bus, nvme_slot, nvme_function);
+            print("NVME: Controller found at PCI Bus %d Slot %d Function %d", nvme_bus, nvme_slot, nvme_function);
             int ret = controller_init(nvme_bus, nvme_slot, nvme_function);
             if (ret == -1) {
-                print("lakebios: NVME: error during initializing the controller mentioned before. Caused by an allocation failure, or a controller error.");
+                print("NVME: Error during initializing the controller mentioned before. Caused by an allocation failure, or a controller error.");
             } else if (ret == 0) {
-                print("lakebios: NVME: success during initializing the controller mentioned before");
+                print("NVME: Success during initializing the controller mentioned before");
             } else {
-                print("lakebios: NVME: success during initializing the controller mentioned before, but %d namespaces were not set up. Caused by an allocation failure, or controller error.");
+                print("NVME: Success during initializing the controller mentioned before, but %d namespaces were not set up. Caused by an allocation failure, or controller error.");
             }
         } else {
             break;
         }
     }
-    print("lakebios: NVME: finished initializing controllers");
+    print("NVME: Finished initializing controllers");
 }
 
 int nvme_command(

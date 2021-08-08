@@ -11,6 +11,7 @@
 #include <tools/string.h>
 
 static void memory_init() {
+    print("q35: Memory: Initializing");
     // Shadow and unshadow BIOS data, to avoid exploits
     q35_dram_pam_lock(5);
     q35_dram_pam_lock(6);
@@ -19,12 +20,14 @@ static void memory_init() {
 }
 
 static void early_acpi_init() {
+    print("q35: PM: Early initialization");
     // Enable ACPI registers
     q35_lpc_acpi_base(Q35_ACPI_BASE);
     q35_lpc_acpi_enable();
 }
 
 static void smm_init() {
+    print("q35: SMM: Initializing");
     // SMRAM setup
     q35_dram_smram_open();
     memcpy((void *) (SMM_DEFAULT_SMBASE + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
@@ -36,6 +39,7 @@ static void smm_init() {
 }
 
 static void irqs_init() {
+    print("q35: IRQs: Initializing");
     pic_init(8, 0xa0);
     // PIRQs
     for (int i = 0; i < 8; i++) {
@@ -65,24 +69,28 @@ static void irqs_init() {
 }
 
 static void isa_init() {
+    print("q35: ISA: Initializing");
     // PS/2 init
     if (ps2_init() != 0) {
-        print("lakebios: could not initialize PS/2. Halting.");
+        print("q35: ISA: Could not initialize PS/2 controller/keyboard/mouse");
         for (;;) {}
     }
 }
 
 static void pci_init() {
+    print("q35: PCI: Initializing");
     pci_enumerate(
         Q35_PCI_MMIO_BASE, Q35_PCI_IO_BASE,
         Q35_LPC_PIRQ_A_IRQ, Q35_LPC_PIRQ_B_IRQ, Q35_LPC_PIRQ_C_IRQ, Q35_LPC_PIRQ_D_IRQ);
 }
 
 void q35_init() {
+    print("q35: Initializing");
     memory_init();
     early_acpi_init();
     smm_init();
     irqs_init();
     isa_init();
     pci_init();
+    print("q35: Initialization ended successfully");
 }

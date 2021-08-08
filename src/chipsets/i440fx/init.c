@@ -12,6 +12,7 @@
 #include <tools/print.h>
 
 static void memory_init() {
+    print("i440fx: Memory: Initializing");
     // Avoid vulnerabilities by reloading the BIOS default data
     i440fx_pmc_pam_lock(5);
     i440fx_pmc_pam_lock(6);
@@ -21,10 +22,12 @@ static void memory_init() {
 }
 
 static void early_acpi_init() {
+    print("i440fx: PM: Early initialization");
     i440fx_pm_acpi_base(I440FX_ACPI_BASE);
 }
 
 static void smm_init() {
+    print("i440fx: SMM: Initializing");
     i440fx_pmc_smram_open();
     memcpy((void *) (SMM_DEFAULT_SMBASE + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
     memcpy((void *) (SMM_NEW_SMBASE + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
@@ -35,6 +38,7 @@ static void smm_init() {
 }
 
 static void irqs_init() {
+    print("i440fx: IRQs: Initializing");
     pic_init(8, 0xa0);
     // PIRQs
     for (int i = 0; i < 4; i++) {
@@ -54,22 +58,27 @@ static void irqs_init() {
 }
 
 static void isa_init() {
+    print("i440fx: ISA: Initializing");
     if (ps2_init() != 0) {
-        print("lakebios: could not initialize PS/2 controller. Halting.");
+        print("i440fx: ISA: Could not initialize PS/2 controller/keyboard/mouse");
+        for (;;) {}
     }
 }
 
 static void pci_init() {
+    print("i440fx: PCI: Initializing");
     pci_enumerate(
         I440FX_PCI_MMIO_BASE, I440FX_PCI_IO_BASE,
         I440FX_PCI2ISA_PIRQ_A_IRQ, I440FX_PCI2ISA_PIRQ_B_IRQ, I440FX_PCI2ISA_PIRQ_C_IRQ, I440FX_PCI2ISA_PIRQ_D_IRQ);
 }
 
 void i440fx_init() {
+    print("i440fx: Initializing");
     memory_init();
     early_acpi_init();
     smm_init();
     irqs_init();
     isa_init();
     pci_init();
+    print("i440fx: Initialization ended successfully");
 }

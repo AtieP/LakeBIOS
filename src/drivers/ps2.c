@@ -166,10 +166,10 @@ int ps2_init() {
     ps2_controller_disable_keyb_translation();
     // Self-test
     if (ps2_controller_self_test() != 0) {
-        print("lakebios: could not initialize PS/2 controller because the self test failed");
+        print("PS/2: Controller self test failed");
         return -1;
     } else {
-        print("lakebios: PS/2 controller self test passed");
+        print("PS/2: Controller self test passed");
     }
     // Enable devices again
     ps2_controller_enable_keyb_port();
@@ -178,11 +178,11 @@ int ps2_init() {
     ps2_controller_enable_mouse_irqs();
     // Reset them
     if (ps2_keyboard_reset() != 0) {
-        print("lakebios: PS/2 keyboard failed to reset");
+        print("PS/2: Keyboard failed to reset");
         return -1;
     }
     if (ps2_mouse_reset() != 0) {
-        print("lakebios: PS/2 mouse failed to reset");
+        print("PS/2: Mouse failed to reset");
         return -1;
     }
     ps2_keyboard_enable_scanning();

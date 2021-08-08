@@ -1,6 +1,5 @@
 #include <cpu/pio.h>
 #include <drivers/pci.h>
-#include <tools/print.h>
 
 static void send_address(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset) {
     outd(PCI_CFG_ADDRESS, 0x80000000 | (bus << 16) | (slot << 11) | (function << 8) | (offset & 0xfc));

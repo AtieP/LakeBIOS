@@ -23,7 +23,7 @@ static const char *disk_type_to_name(int type) {
 }
 
 void hal_disk_submit(struct disk_abstract *disk, int flp) {
-    print("lakebios: HAL: submitting a: %s", disk_type_to_name(disk->interface));
+    print("HAL: Submitting a: %s", disk_type_to_name(disk->interface));
     if (!flp) {
         memcpy(&disk_inventory[disk_hdd_dl], disk, sizeof(struct disk_abstract));
         disk_inventory[disk_hdd_dl].present = 1;

@@ -17,7 +17,7 @@ static void smm_handler_main() {
     uint32_t revision = state->regs32.smrev & 0x2ffff;
     if (command == 0x01) {
         // Command 0x01 for lakebios: Move SMBASE to 0xa0000
-        print("lakebios: smm: moving SMBASE to 0xa0000");
+        print("SMM: Moving SMBASE to 0xa0000");
         // If SMBASE is already 0xa0000 then the revision is 0
         smbase = SMM_NEW_SMBASE;
         if (revision) {
@@ -26,7 +26,7 @@ static void smm_handler_main() {
             } else if (revision == SMM_REV_64) {
                 state->regs64.smbase = smbase;
             } else {
-                print("lakebios: smm: invalid revision. Halting.");
+                print("SMM: Invalid SMM revision");
                 for (;;) {}
             }
         }
@@ -56,11 +56,11 @@ static void smm_handler_main() {
             regs.es = state->regs64.es.base;
             regs.ds = state->regs64.ds.base;
         } else {
-            print("lakebios: smm: invalid revision. Halting.");
+            print("SMM: Invalid SMM revision");
             for (;;) {}
         }
         asm volatile("mov %%cr2, %0" : "=r"(regs.eax));
-        print("lakebios: smm: real mode int %xh ah %xh", data, (uint8_t) (regs.eax >> 8));
+        print("SMM: Real mode interrupt vector #0x%x function %x", data, regs.ah);
         for (;;) {}
         if (revision == SMM_REV_32) {
             state->regs32.eax = regs.eax;
@@ -89,7 +89,7 @@ static void smm_handler_main() {
             state->regs64.rflags &= ~0xffffffff;
             state->regs64.rflags |= regs.eflags;
         } else {
-            print("lakebios: smm: invalid revision. Halting.");
+            print("SMM: Invalid SMM revision");
             for (;;) {}
         }
     }

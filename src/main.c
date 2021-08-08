@@ -48,21 +48,21 @@ void bios_main() {
     uint16_t vendor_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
     uint16_t device_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);
     if (vendor_id == I440FX_PMC_VENDOR && device_id == I440FX_PMC_DEVICE) {
-        print("lakebios: i440fx chipset detected, initializing");
+        print("i440fx chipset detected, initializing");
         i440fx_init();
     } else if (vendor_id == Q35_DRAM_VENDOR && device_id == Q35_DRAM_DEVICE) {
-        print("lakebios: q35 chipset detected, initializing");
+        print("q35 chipset detected, initializing");
         q35_init();
     } else {
-        print("lakebios: sorry, unknown chipset with host bridge vendor %x device %x", vendor_id, device_id);
+        print("Sorry, unknown chipset with host bridge vendor %x device %x", vendor_id, device_id);
         for (;;) {}
     }
     gdt_craft();
     gdt_reload(GDT_32_CS, GDT_32_DS);
     // Print amount of memory
-    print("lakebios: KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
-    print("lakebios: KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
-    print("lakebios: KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
+    print("KiBs of memory between 0M and 1M:  %d", rtc_get_low_mem() / 1024);
+    print("KiBs of memory between 1M and 16M: %d", rtc_get_ext1_mem() / 1024);
+    print("KiBs of memory between 16M and 4G: %d", rtc_get_ext2_mem() / 1024);
     // Set up allocator
     alloc_setup();
     // AHCI
@@ -88,13 +88,13 @@ void bios_main() {
             offset += 16;
         }
     }
-    print("lakebios: POST finished");
+    print("POST finished");
     // Load bootsector from first disk
     puts_display("Booting...\n");
     if (hal_disk_rw(0x80, (void *) 0x7c00, 0, 512, 0) == 0) {
         uint16_t *bootsector = (uint16_t *) 0x7c00;
         if (bootsector[255] == 0xaa55) {
-            print("lakebios: bootable drive found, jumping to it!\n\n");
+            print("Bootable drive found, jumping to it!\n\n");
             // Jump to it
             // Todo: modify this, this is crusty.
             asm volatile(
@@ -118,6 +118,6 @@ void bios_main() {
         }
     }
     puts_display("No bootable drive found. Halting.");
-    print("lakebios: no bootable disk found.");
+    print("No bootable drive found.");
     for (;;);
 }

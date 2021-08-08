@@ -65,7 +65,7 @@ static const char *display_type_to_name(int type) {
 }
 
 void hal_display_submit(struct display_abstract *display_abstract) {
-    print("lakebios: HAL: submitting a: %s", display_type_to_name(display_abstract->interface));
+    print("HAL: Submitting a: %s", display_type_to_name(display_abstract->interface));
     memcpy(&display_inventory[display_inventory_index], display_abstract, sizeof(struct display_abstract));
     display_inventory[display_inventory_index].present = 1;
     display_inventory_index++;
