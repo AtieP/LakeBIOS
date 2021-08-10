@@ -1,9 +1,7 @@
-#ifndef __DRIVERS_VIDEO_VGA_IO_H__
-#define __DRIVERS_VIDEO_VGA_IO_H__
+#ifndef __DRIVERS_VIDEO_VGA_REGS_H__
+#define __DRIVERS_VIDEO_VGA_REGS_H__
 
-#include <stdint.h>
-#include <cpu/pio.h>
-
+/* Graphics controller */
 #define VGA_GFX_ADDR 0x3ce
 #define VGA_GFX_DATA 0x3cf
 
@@ -17,6 +15,7 @@
 #define VGA_GFX_CDC 0x07 // color don't care
 #define VGA_GFX_BIT_MASK 0x08
 
+/* Sequencer */
 #define VGA_SEQ_ADDR 0x3c4
 #define VGA_SEQ_DATA 0x3c5
 
@@ -26,9 +25,11 @@
 #define VGA_SEQ_CHAR_MAP_SEL 0x03
 #define VGA_SEQ_MEM_MODE 0x04
 
+/* Misc */
 #define VGA_MISC_WRITE 0x3c2
 #define VGA_MISC_READ 0x3cc
 
+/* Cathode Ray Tube Controller */
 #define VGA_CRTC_ADDR 0x3d4
 #define VGA_CRTC_DATA 0x3d5
 
@@ -58,6 +59,7 @@
 #define VGA_CRTC_MODE_CONTROL 0x17
 #define VGA_CRTC_LINE_COMPARE 0x18
 
+/* Attribute Controller */
 #define VGA_AC_ADDR 0x3c0
 #define VGA_AC_WRITE 0x3c0
 #define VGA_AC_READ 0x3c1
@@ -68,74 +70,9 @@
 #define VGA_AC_HORIZONTAL_PIXEL_PAN 0x13
 #define VGA_AC_COLOR_SELECT 0x14
 
+/* DAC */
 #define VGA_DAC_ADDR_READ 0x3c7
 #define VGA_DAC_ADDR_WRITE 0x3c8
 #define VGA_DAC_DATA 0x3c9
-
-static inline uint8_t vga_gfx_read(uint8_t index) {
-    outb(VGA_GFX_ADDR, index);
-    return inb(VGA_GFX_DATA);
-}
-
-static inline void vga_gfx_write(uint8_t index, uint8_t value) {
-    outb(VGA_GFX_ADDR, index);
-    outb(VGA_GFX_DATA, value);
-}
-
-static inline uint8_t vga_seq_read(uint8_t index) {
-    outb(VGA_SEQ_ADDR, index);
-    return inb(VGA_SEQ_DATA);
-}
-
-static inline void vga_seq_write(uint8_t index, uint8_t value) {
-    outb(VGA_SEQ_ADDR, index);
-    outb(VGA_SEQ_DATA, value);
-}
-
-static inline uint8_t vga_crtc_read(uint8_t index) {
-    outb(VGA_CRTC_ADDR, index);
-    return inb(VGA_CRTC_DATA);
-}
-
-static inline void vga_crtc_write(uint8_t index, uint8_t value) {
-    outb(VGA_CRTC_ADDR, index);
-    outb(VGA_CRTC_DATA, value);
-}
-
-static inline uint8_t vga_attr_read(uint8_t index) {
-    outb(VGA_AC_ADDR, index);
-    return inb(VGA_AC_READ);
-}
-
-static inline void vga_attr_write(uint8_t index, uint8_t value) {
-    outb(VGA_AC_ADDR, index);
-    outb(VGA_AC_WRITE, value);
-}
-
-static inline uint8_t vga_misc_read() {
-    return inb(VGA_MISC_READ);
-}
-
-static inline void vga_misc_write(uint8_t value) {
-    outb(VGA_MISC_WRITE, value);
-}
-
-static inline void vga_dac_read(uint8_t index, uint8_t (*values)[3], int len) {
-    outb(VGA_DAC_ADDR_READ, index);
-    for (int i = 0; i < len; i++) {
-        for (int j = 0; j < 3; j++) {
-            values[i][j] = inb(VGA_DAC_DATA);
-        }
-    }
-}
-
-static inline void vga_dac_write(uint8_t index, const uint8_t (*values)[3], int len) {
-    outb(VGA_DAC_ADDR_WRITE, index);
-    for (int i = 0; i < len; i++) {
-        for (int j = 0; j < 3; j++) {
-            outb(VGA_DAC_DATA, values[i][j]);
-        }
-    }
-}
 
 #endif

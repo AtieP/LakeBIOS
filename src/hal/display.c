@@ -1,7 +1,6 @@
 #include <hal/display.h>
-#include <drivers/video/vga_bochs.h>
+#include <drivers/video/bochs_display.h>
 #include <drivers/video/vga_modes.h>
-#include <drivers/video/vga_std.h>
 #include <paravirt/qemu.h>
 #include <tools/string.h>
 #include <tools/print.h>
@@ -78,48 +77,31 @@ int hal_display_resolution(uint8_t display, int width, int height, int bpp, int 
     }
     uint8_t interface = display_abstract->interface;
     int pitch = width * (bpp / 8);
-    if (interface == HAL_DISPLAY_VGA || (interface == HAL_DISPLAY_VGA_BGA && !gfx)) {
+    if (interface == HAL_DISPLAY_VGA_BGA && !gfx) {
+        int bufsize;
         if (width == 80 && height == 25 && bpp == 4 && text) {
-            vga_regs_write(
-                vga_mode_80x25x16_text.misc,
-                vga_mode_80x25x16_text.seq, vga_mode_80x25x16_text.seq_len,
-                vga_mode_80x25x16_text.crtc, vga_mode_80x25x16_text.crtc_len,
-                vga_mode_80x25x16_text.gfx, vga_mode_80x25x16_text.gfx_len,
-                vga_mode_80x25x16_text.attr, vga_mode_80x25x16_text.attr_len,
-                vga_mode_80x25x16_text.pallete, vga_mode_80x25x16_text.pallete_entries
-            );
+            bochs_display_vga_regs_write(display_abstract->specific.bga.bar2, &vga_mode_80x25x16_text);
             display_abstract->common.buffer = (void *) 0xb8000;
-            if (clear) {
-                for (int i = 0; i < 80 * 25; i++) {
-                    *((uint16_t *) 0xb8000 + i) = 0x00;
-                }
-            }
+            bufsize = 400;
         } else if (width == 320 && height == 200 && bpp == 8 && !text) {
-            vga_regs_write(
-                vga_mode_320x200x256_linear.misc,
-                vga_mode_320x200x256_linear.seq, vga_mode_320x200x256_linear.seq_len,
-                vga_mode_320x200x256_linear.crtc, vga_mode_320x200x256_linear.crtc_len,
-                vga_mode_320x200x256_linear.gfx, vga_mode_320x200x256_linear.gfx_len,
-                vga_mode_320x200x256_linear.attr, vga_mode_320x200x256_linear.attr_len,
-                vga_mode_320x200x256_linear.pallete, vga_mode_320x200x256_linear.pallete_entries
-            );
+            bochs_display_vga_regs_write(display_abstract->specific.bga.bar2, &vga_mode_320x200x256_linear);
             display_abstract->common.buffer = (void *) 0xa0000;
-            if (clear) {
-                for (int i = 0; i < 320 * 200; i++) {
-                    *((uint8_t *) 0xa0000 + i) = 0x00;
-                }
-            }
+            bufsize = 320 * 200;
         } else {
             return -1;
         }
         display_abstract->properties.vga_mode = 1;
-    } else if (interface == HAL_DISPLAY_BGA || (interface == HAL_DISPLAY_VGA_BGA && gfx)) {
-        bga_resolution(width, height, bpp, clear);
-        display_abstract->common.buffer = bga_get_fb();
+        if (clear) {
+            for (int i = 0; i < bufsize; i++) {
+                *((uint8_t *) display_abstract->common.buffer + i) = 0x00;
+            }
+        }
+    } else if ((interface == HAL_DISPLAY_VGA_BGA && gfx) || interface == HAL_DISPLAY_BGA) {
+        bochs_display_high_res(display_abstract->specific.bga.bar2, width, height, bpp, clear);
+        display_abstract->common.buffer = display_abstract->specific.bga.fb;
         display_abstract->properties.vga_mode = 0;
     } else if (interface == HAL_DISPLAY_RAMFB) {
         qemu_ramfb_resolution((uint64_t) (uintptr_t) display_abstract->common.buffer, width, height, bpp, clear);
-        display_abstract->properties.vga_mode = 0;
     } else {
         return -1;
     }
@@ -131,7 +113,7 @@ int hal_display_resolution(uint8_t display, int width, int height, int bpp, int 
     return 0;
 }
 
-int hal_display_font_get(uint8_t display, void **font, int *width, int *height) {
+int hal_display_font_get(uint8_t display, const void **font, int *width, int *height) {
     struct display_abstract *display_abstract = &display_inventory[display];
     if (!display_abstract->present) {
         return -1;
@@ -148,7 +130,11 @@ int hal_display_font_set(uint8_t display, const void *font, int width, int heigh
         return -1;
     }
     if (display_abstract->properties.vga_mode) {
-        vga_font_write(font, height);
+        if (display_abstract->interface == HAL_DISPLAY_VGA_BGA) {
+            bochs_display_vga_font_write(display_abstract->specific.bga.bar2, font, height);
+        } else {
+            return -1;
+        }
     }
     display_abstract->font.font = font;
     display_abstract->font.height = height;
@@ -192,4 +178,8 @@ int hal_display_plot_char(uint8_t display, int ch, int x, int y, uint8_t backgro
         }
     }
     return 0;
+}
+
+int hal_display_get_interface(uint8_t display) {
+    return display_inventory[display].present ? display_inventory[display].interface : -1;
 }

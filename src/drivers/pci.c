@@ -166,18 +166,27 @@ int pci_bar_allocate(uint8_t bus, uint8_t slot, uint8_t function, int bar, uintp
         return -1;
     }
     if (kind == 1) {
+        if (bar_io_base % bar_size) {
+            bar_io_base = (bar_io_base + (bar_size - 1)) & ~(bar_size - 1);
+        }
         pci_cfg_write_dword(bus, slot, function, bar_offset, bar_io_base);
-        bar_io_base += bar_size;
         pci_enable_io(bus, slot, function);
+        bar_io_base += bar_size;
     } else if (kind == 0) {
+        if (bar_mmio_base % bar_size) {
+            bar_mmio_base = (bar_mmio_base + (bar_size - 1)) & ~(bar_size - 1);
+        }
         pci_cfg_write_dword(bus, slot, function, bar_offset, bar_mmio_base);
-        bar_mmio_base += (bar_size + 4095) & ~4095;
         pci_enable_memory(bus, slot, function);
+        bar_mmio_base += bar_size;
     } else if (kind == 2) {
+        if (bar_mmio_base % bar_size) {
+            bar_mmio_base = (bar_mmio_base + (bar_size - 1)) & ~(bar_size - 1);
+        }
         pci_cfg_write_dword(bus, slot, function, bar_offset, bar_mmio_base);
         pci_cfg_write_dword(bus, slot, function, bar_offset + 4, 0);
-        bar_mmio_base += (bar_size + 4095) & ~4095;
         pci_enable_memory(bus, slot, function);
+        bar_mmio_base += bar_size;
     }
     return kind;
 }

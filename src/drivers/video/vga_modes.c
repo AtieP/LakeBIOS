@@ -1,4 +1,4 @@
-#include <drivers/video/vga_io.h>
+#include <drivers/video/vga_regs.h>
 #include <drivers/video/vga_modes.h>
 #include <drivers/video/vga_palletes.h>
 
@@ -9,7 +9,7 @@ static const uint8_t mode_80x25x16_text_seq[][2] = {
     {VGA_SEQ_RESET, 0x03},
     {VGA_SEQ_CLOCKING, 0x00},
     {VGA_SEQ_MAP_MASK, 0x03},
-    {VGA_SEQ_CHAR_MAP_SEL, 0x3a},
+    {VGA_SEQ_CHAR_MAP_SEL, 0x00},
     {VGA_SEQ_MEM_MODE, 0x02}
 };
 
@@ -37,7 +37,8 @@ static const uint8_t mode_80x25x16_text_crtc[][2] = {
     {VGA_CRTC_UNDERLINE_LOCATION, 0x1f},
     {VGA_CRTC_VERTICAL_BLANKING_START, 0x96},
     {VGA_CRTC_VERTICAL_BLANKING_END, 0xb9},
-    {VGA_CRTC_MODE_CONTROL, 0xa3}
+    {VGA_CRTC_MODE_CONTROL, 0xa3},
+    {VGA_CRTC_LINE_COMPARE, 0xff}
 };
 
 static const uint8_t mode_80x25x16_text_gfx[][2] = {
@@ -48,7 +49,7 @@ static const uint8_t mode_80x25x16_text_gfx[][2] = {
     {VGA_GFX_READ_MAP_SEL, 0x00},
     {VGA_GFX_MODE, 0x10},
     {VGA_GFX_MISC, 0x0e},
-    {VGA_GFX_CDC, 0x00},
+    {VGA_GFX_CDC, 0x0f},
     {VGA_GFX_BIT_MASK, 0xff}
 };
 

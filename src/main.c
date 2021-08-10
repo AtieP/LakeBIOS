@@ -18,10 +18,8 @@
 
 #include <drivers/pci.h>
 #include <drivers/video/romfont.h>
-#include <drivers/video/vga_bochs.h>
-#include <drivers/video/vga_std.h>
+#include <drivers/video/bochs_display.h>
 #include <drivers/video/vga_modes.h>
-#include <drivers/video/vga_io.h>
 
 static void puts_display(const char *string) {
     static int x = 0;
@@ -69,12 +67,17 @@ void bios_main() {
     ahci_init();
     // NVME
     nvme_init();
-    // Set VGA text mode
-    struct display_abstract vga;
-    vga.interface = HAL_DISPLAY_VGA_BGA;
-    hal_display_submit(&vga);
-    hal_display_resolution(0x00, 80, 25, 4, 1, 1, 0);
-    hal_display_font_set(0x00, romfont_8x16, 8, 16);
+    // Bochs displays
+    bochs_display_init();
+    int display_interface = hal_display_get_interface(0x00);
+    if (display_interface != -1) {
+        if (display_interface == HAL_DISPLAY_VGA || display_interface == HAL_DISPLAY_VGA_BGA) {
+            hal_display_resolution(0x00, 80, 25, 4, 1, 1, 0);
+        } else {
+            hal_display_resolution(0x00, 80 * 8, 25 * 16, 16, 1, 0, 1);
+        }
+    }
+    hal_display_font_set(0x00, &romfont_8x16, 8, 16);
     puts_display("LakeBIOS - x86 Firmware\nMade by Atie - https://github.com/AtieP/LakeBIOS\n\n");
     // Populate real mode handlers (maybe move this somewhere else)
     uint16_t segment = 0xf000;
