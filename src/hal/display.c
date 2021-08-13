@@ -1,6 +1,7 @@
 #include <hal/display.h>
 #include <drivers/video/bochs_display.h>
 #include <drivers/video/vga_modes.h>
+#include <drivers/video/vmware_vga.h>
 #include <paravirt/qemu.h>
 #include <tools/string.h>
 #include <tools/print.h>
@@ -58,6 +59,8 @@ static const char *display_type_to_name(int type) {
             return "VGA/BGA hybrid display";
         case HAL_DISPLAY_RAMFB:
             return "ramfb display";
+        case HAL_DISPLAY_VMWARE_VGA:
+            return "VMWare VGA display";
         default:
             return "Unknown display";
     }
@@ -70,14 +73,14 @@ void hal_display_submit(struct display_abstract *display_abstract) {
     display_inventory_index++;
 }
 
-int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int gfx) {
+int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int vga_mode) {
     struct display_abstract *display_abstract = &display_inventory[display];
     if (!display_abstract->present) {
         return -1;
     }
     uint8_t interface = display_abstract->interface;
     int pitch = width * (bpp / 8);
-    if (interface == HAL_DISPLAY_VGA_BGA && !gfx) {
+    if (interface == HAL_DISPLAY_VGA_BGA && vga_mode) {
         int bufsize;
         if (width == 80 && height == 25 && bpp == 4 && text) {
             bochs_display_vga_regs_write(display_abstract->specific.bga.bar2, &vga_mode_80x25x16_text);
@@ -96,12 +99,18 @@ int hal_display_resolution(uint8_t display, int width, int height, int bpp, int 
                 *((uint8_t *) display_abstract->common.buffer + i) = 0x00;
             }
         }
-    } else if ((interface == HAL_DISPLAY_VGA_BGA && gfx) || interface == HAL_DISPLAY_BGA) {
+    } else if ((interface == HAL_DISPLAY_VGA_BGA && !vga_mode) || interface == HAL_DISPLAY_BGA) {
         bochs_display_high_res(display_abstract->specific.bga.bar2, width, height, bpp, clear);
         display_abstract->common.buffer = display_abstract->specific.bga.fb;
         display_abstract->properties.vga_mode = 0;
     } else if (interface == HAL_DISPLAY_RAMFB) {
         qemu_ramfb_resolution((uint64_t) (uintptr_t) display_abstract->common.buffer, width, height, bpp, clear);
+    } else if (interface == HAL_DISPLAY_VMWARE_VGA && !vga_mode) {
+        vmware_vga_high_res(display_abstract->specific.vmware_vga.bar0, width, height, bpp, &pitch);
+        uint8_t *fb = display_abstract->common.buffer;
+        for (size_t i = 0; i < width * pitch; i++) {
+            fb[i] = 0x00;
+        }
     } else {
         return -1;
     }

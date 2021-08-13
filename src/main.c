@@ -20,6 +20,7 @@
 #include <drivers/video/romfont.h>
 #include <drivers/video/bochs_display.h>
 #include <drivers/video/vga_modes.h>
+#include <drivers/video/vmware_vga.h>
 
 static void puts_display(const char *string) {
     static int x = 0;
@@ -69,12 +70,14 @@ void bios_main() {
     nvme_init();
     // Bochs displays
     bochs_display_init();
+    // VMWare VGA
+    vmware_vga_init();
     int display_interface = hal_display_get_interface(0x00);
     if (display_interface != -1) {
         if (display_interface == HAL_DISPLAY_VGA || display_interface == HAL_DISPLAY_VGA_BGA) {
-            hal_display_resolution(0x00, 80, 25, 4, 1, 1, 0);
+            hal_display_resolution(0x00, 80, 25, 4, 1, 1, 1);
         } else {
-            hal_display_resolution(0x00, 80 * 8, 25 * 16, 16, 1, 0, 1);
+            hal_display_resolution(0x00, 80 * 8, 25 * 16, 32, 1, 0, 0);
         }
     }
     hal_display_font_set(0x00, &romfont_8x16, 8, 16);
