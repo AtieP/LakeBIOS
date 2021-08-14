@@ -44,6 +44,14 @@ static void puts_display(const char *string) {
 
 __attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
+    // Force a hard reboot
+    if (rtc_reset_status_get() != 0x00) {
+        // PCI reset
+        uint8_t value = inb(0xcf9) & ~6;
+        outb(0xcf9, value | 2);
+        outb(0xcf9, value | 6);
+        for (;;) {}
+    }
     uint16_t vendor_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
     uint16_t device_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);
     if (vendor_id == I440FX_PMC_VENDOR && device_id == I440FX_PMC_DEVICE) {
@@ -94,6 +102,7 @@ void bios_main() {
             offset += 16;
         }
     }
+    rtc_reset_status_set(0x01);
     print("POST finished");
     // Load bootsector from first disk
     puts_display("Booting...\n");

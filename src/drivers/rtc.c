@@ -11,6 +11,16 @@ void rtc_write(uint8_t index, uint8_t data) {
     outb(RTC_DATA, data);
 }
 
+uint8_t rtc_reset_status_get() {
+    return rtc_read(CMOS_RESET_STATUS);
+}
+
+void rtc_reset_status_set(uint8_t status) {
+    rtc_write(CMOS_RESET_STATUS, status);
+}
+
+/* QEMU specific */
+
 uint8_t rtc_get_floppy_master_kind() {
     return (rtc_read(CMOS_FLOPPY) & 0b11110000) >> 4;
 }
