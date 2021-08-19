@@ -79,9 +79,11 @@ static void isa_init() {
 
 static void pci_init() {
     print("q35: PCI: Initializing");
-    pci_enumerate(
-        Q35_PCI_MMIO_BASE, Q35_PCI_IO_BASE,
-        Q35_LPC_PIRQ_A_IRQ, Q35_LPC_PIRQ_B_IRQ, Q35_LPC_PIRQ_C_IRQ, Q35_LPC_PIRQ_D_IRQ);
+    int ret = pci_setup(Q35_PCI_MMIO_BASE, Q35_PCI_MMIO_BASE + 0x8000000, Q35_PCI_IO_BASE, Q35_PCI_IO_BASE + (0xffff - Q35_PCI_IO_BASE), Q35_PCI_MMIO_BASE + 0x8000000, Q35_PCI_MMIO_BASE + 0x8000000 + 0x8000000, NULL);
+    if (ret == -1) {
+        print("q35: PCI: Host bridge unavailable. Halting");
+        for (;;) {}
+    }
 }
 
 void q35_init() {

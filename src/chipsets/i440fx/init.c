@@ -67,9 +67,11 @@ static void isa_init() {
 
 static void pci_init() {
     print("i440fx: PCI: Initializing");
-    pci_enumerate(
-        I440FX_PCI_MMIO_BASE, I440FX_PCI_IO_BASE,
-        I440FX_PCI2ISA_PIRQ_A_IRQ, I440FX_PCI2ISA_PIRQ_B_IRQ, I440FX_PCI2ISA_PIRQ_C_IRQ, I440FX_PCI2ISA_PIRQ_D_IRQ);
+    int ret = pci_setup(I440FX_PCI_MMIO_BASE, I440FX_PCI_MMIO_BASE + 0x8000000, I440FX_PCI_IO_BASE, I440FX_PCI_IO_BASE + (0xffff - I440FX_PCI_IO_BASE), I440FX_PCI_MMIO_BASE + 0x8000000, I440FX_PCI_MMIO_BASE + 0x8000000 + 0x8000000, NULL);
+    if (ret == -1) {
+        print("i440fX: PCI: Host bridge unavailable. Halting");
+        for (;;) {}
+    }
 }
 
 void i440fx_init() {

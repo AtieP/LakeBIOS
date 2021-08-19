@@ -22,7 +22,7 @@ static int get_mpsmin(volatile struct nvme_configuration *cfg) {
 
 static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_function) {
     int not_initialized_namespaces = 0;
-    pci_enable_bus_mastering(nvme_bus, nvme_slot, nvme_function);
+    pci_control_set(nvme_bus, nvme_slot, nvme_function, PCI_CFG_COMMAND_BUS_MASTER | PCI_CFG_COMMAND_IO_ENABLE | PCI_CFG_COMMAND_MEM_ENABLE);
     volatile struct nvme_configuration *cfg = (volatile struct nvme_configuration *) (uintptr_t) pci_get_bar(nvme_bus, nvme_slot, nvme_function, 0);
     if (!cfg) {
         return -1;

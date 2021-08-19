@@ -151,7 +151,7 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
     if (!abar) {
         return -1; // Very unlikely though
     }
-    pci_enable_bus_mastering(ahci_bus, ahci_slot, ahci_function);
+    pci_control_set(ahci_bus, ahci_slot, ahci_function, PCI_CFG_COMMAND_BUS_MASTER | PCI_CFG_COMMAND_IO_ENABLE | PCI_CFG_COMMAND_MEM_ENABLE);
     abar->ghc.global_hba_control |= AHCI_GHC_CNT_AE;
     // Reset
     abar->ghc.global_hba_control |= AHCI_GHC_CNT_RESET;
