@@ -11,6 +11,19 @@
 #include <tools/string.h>
 #include <tools/print.h>
 
+static uint8_t pirqs[] = {10, 10, 11, 11};
+
+static uint8_t get_interrupt_line(int pirq, uint8_t bus, uint8_t slot, uint8_t function) {
+    if (pirq == 0x00 || pirq > 0x04) {
+        return 0xff;
+    }
+    // Power management controller
+    if (pirq == 0x01 && bus == 0x00 && slot == 0x01 && function == 0x03) {
+        return 9;
+    }
+    return pirqs[(slot - 1) & 3];
+}
+
 static void memory_init() {
     print("i440fx: Memory: Initializing");
     // Avoid vulnerabilities by reloading the BIOS default data
@@ -67,7 +80,7 @@ static void isa_init() {
 
 static void pci_init() {
     print("i440fx: PCI: Initializing");
-    int ret = pci_setup(I440FX_PCI_MMIO_BASE, I440FX_PCI_MMIO_BASE + 0x8000000, I440FX_PCI_IO_BASE, I440FX_PCI_IO_BASE + (0xffff - I440FX_PCI_IO_BASE), I440FX_PCI_MMIO_BASE + 0x8000000, I440FX_PCI_MMIO_BASE + 0x8000000 + 0x8000000, NULL);
+    int ret = pci_setup(I440FX_PCI_MMIO_BASE, I440FX_PCI_MMIO_BASE + 0x8000000, I440FX_PCI_IO_BASE, I440FX_PCI_IO_BASE + (0xffff - I440FX_PCI_IO_BASE), I440FX_PCI_MMIO_BASE + 0x8000000, I440FX_PCI_MMIO_BASE + 0x8000000 + 0x8000000, get_interrupt_line);
     if (ret == -1) {
         print("i440fX: PCI: Host bridge unavailable. Halting");
         for (;;) {}

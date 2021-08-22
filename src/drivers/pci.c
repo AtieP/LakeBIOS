@@ -150,11 +150,11 @@ static void setup_pci_bridge(uint8_t bus, uint8_t slot, uint8_t function, int *f
         pref_implemented = 0;
     }
     // Align memory, IO and prefetchable bases
-    if (mem_implemented) {
-        mem_base = (mem_base + 0xffffe) & ~0xffffe;
-    }
     if (io_implemented) {
         io_base = (io_base + 0x0fff) & ~0x0fff;
+    }
+    if (mem_implemented) {
+        mem_base = (mem_base + 0xffffe) & ~0xffffe;
     }
     if (pref_implemented) {
         pref_base = (pref_base + 0xffffe) & ~0xffffe;
@@ -174,16 +174,22 @@ static void setup_pci_bridge(uint8_t bus, uint8_t slot, uint8_t function, int *f
         pci_cfg_write_byte(bus, slot, function, PCI_CFG_IO_LIMIT, (io_base >> 11) << 3);
         pci_cfg_write_word(bus, slot, function, PCI_CFG_IO_BASE_HI, 0);
         pci_cfg_write_word(bus, slot, function, PCI_CFG_IO_LIMIT_HI, 0);
+        io_base++;
+        io_base = (io_base + 0x0fff) & ~0x0fff;
     }
     if (mem_implemented) {
         pci_cfg_write_word(bus, slot, function, PCI_CFG_MEMORY_BASE, (orig_mem_base >> 19) << 3);
         pci_cfg_write_word(bus, slot, function, PCI_CFG_MEMORY_LIMIT, (mem_base >> 19) << 3);
+        mem_base++;
+        mem_base = (mem_base + 0xffffe) & ~0xffffe;
     }
     if (pref_implemented) {
         pci_cfg_write_word(bus, slot, function, PCI_CFG_PREFETCH_BASE, (orig_pref_base >> 19) << 3);
         pci_cfg_write_word(bus, slot, function, PCI_CFG_PREFETCH_LIMIT, (pref_base >> 19) << 3);
         pci_cfg_write_dword(bus, slot, function, PCI_CFG_PREFETCH_BASE_HI, 0);
         pci_cfg_write_dword(bus, slot, function, PCI_CFG_PREFETCH_LIMIT_HI, 0);
+        pref_base++;
+        pref_base = (pref_base + 0xffffe) & ~0xffffe;
     }
     *found_buses = *found_buses + 1;
 }
@@ -198,6 +204,9 @@ static void setup_function(uint8_t bus, uint8_t slot, uint8_t function, int *fou
     }
     uint8_t header = pci_cfg_read_byte(bus, slot, function, PCI_CFG_HEADER) & ~PCI_CFG_HEADER_MULTIFUNCTION;
     pci_control_set(bus, slot, function, PCI_CFG_COMMAND_MEM_ENABLE | PCI_CFG_COMMAND_IO_ENABLE);
+    pci_cfg_write_byte(bus, slot, function, PCI_CFG_INTERRUPT_LINE, get_interrupt_line(
+        pci_cfg_read_byte(bus, slot, function, PCI_CFG_INTERRUPT_PIN), bus, slot, function
+    ));
     if (header == 0x00) {
         setup_device(bus, slot, function);
     } else if (header == 0x01) {

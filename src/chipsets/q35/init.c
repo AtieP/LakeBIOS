@@ -10,6 +10,20 @@
 #include <tools/print.h>
 #include <tools/string.h>
 
+static uint8_t pirqs[] = {10, 10, 11, 11};
+
+static uint8_t get_interrupt_line(int pirq, uint8_t bus, uint8_t slot, uint8_t function) {
+    (void) bus;
+    (void) function;
+    if (pirq == 0x00 || pirq > 0x04) {
+        return 0xff;
+    }
+    if (slot <= 24) {
+        return pirqs[slot & 3];
+    }
+    return pirqs[pirq - 1];
+}
+
 static void memory_init() {
     print("q35: Memory: Initializing");
     // Shadow and unshadow BIOS data, to avoid exploits
@@ -79,7 +93,7 @@ static void isa_init() {
 
 static void pci_init() {
     print("q35: PCI: Initializing");
-    int ret = pci_setup(Q35_PCI_MMIO_BASE, Q35_PCI_MMIO_BASE + 0x8000000, Q35_PCI_IO_BASE, Q35_PCI_IO_BASE + (0xffff - Q35_PCI_IO_BASE), Q35_PCI_MMIO_BASE + 0x8000000, Q35_PCI_MMIO_BASE + 0x8000000 + 0x8000000, NULL);
+    int ret = pci_setup(Q35_PCI_MMIO_BASE, Q35_PCI_MMIO_BASE + 0x8000000, Q35_PCI_IO_BASE, Q35_PCI_IO_BASE + (0xffff - Q35_PCI_IO_BASE), Q35_PCI_MMIO_BASE + 0x8000000, Q35_PCI_MMIO_BASE + 0x8000000 + 0x8000000, get_interrupt_line);
     if (ret == -1) {
         print("q35: PCI: Host bridge unavailable. Halting");
         for (;;) {}
