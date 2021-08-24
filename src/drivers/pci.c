@@ -32,7 +32,7 @@ static int get_bar_type(uint32_t bar) {
     if (bar & 1) {
         return PCI_BAR_IO;
     }
-    return bar & 0b1111;
+    return bar & 0x0f;
 }
 
 static int allocate_bus() {
@@ -47,13 +47,13 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     if (type == PCI_BAR_IO) {
         pci_cfg_write_dword(bus, slot, function, offset, 0xffffffff);
         bar_size = (uint64_t) pci_cfg_read_dword(bus, slot, function, offset);
-        bar_size &= ~0b11;
+        bar_size &= ~0x02;
         bar_size = ~((uint32_t) bar_size) + 1;
         pci_cfg_write_dword(bus, slot, function, offset, (uint32_t) bar_orig_value);
     } else if (type == PCI_BAR_MEM_32 || type == PCI_BAR_PREF_32) {
         pci_cfg_write_dword(bus, slot, function, offset, 0xffffffff);
         bar_size = pci_cfg_read_dword(bus, slot, function, offset);
-        bar_size &= ~0b1111;
+        bar_size &= ~0x0f;
         bar_size = ~((uint32_t) bar_size) + 1;
         pci_cfg_write_dword(bus, slot, function, offset, (uint32_t) bar_orig_value);
     } else if (type == PCI_BAR_MEM_64 || type == PCI_BAR_PREF_64) {
@@ -61,12 +61,12 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         // Lower half of size
         pci_cfg_write_dword(bus, slot, function, offset, 0xffffffff);
         bar_size = pci_cfg_read_dword(bus, slot, function, offset);
-        bar_size &= ~0b1111;
+        bar_size &= ~0x0f;
         bar_size = ~((uint32_t) bar_size) + 1;
         pci_cfg_write_dword(bus, slot, function, offset, (uint32_t) bar_orig_value);
         // Higher half of size
         pci_cfg_write_dword(bus, slot, function, offset + 4, 0xffffffff);
-        bar_size |= (uint64_t) (~(pci_cfg_read_dword(bus, slot, function, offset + 4) & ~0b1111) + 1) << 32;
+        bar_size |= (uint64_t) (~(pci_cfg_read_dword(bus, slot, function, offset + 4) & ~0x0f) + 1) << 32;
         pci_cfg_write_dword(bus, slot, function, offset + 4, (uint32_t) (bar_orig_value >> 32));
     }
     // Does the BAR exist?
@@ -326,15 +326,15 @@ uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     uint32_t bar_val = pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + (bar * 4));
     if (bar_val & 1) {
         // I/O bar
-        return (uint64_t) ((uint16_t) bar_val & ~0b11);
+        return (uint64_t) ((uint16_t) bar_val & ~0x02);
     }
-    if (((bar_val >> 1) & 0b11) == 0) {
+    if (((bar_val >> 1) & 0x02) == 0) {
         // 32-bit MMIO bar
-        return (uint64_t) (bar_val & ~0b1111);
+        return (uint64_t) (bar_val & ~0x0f);
     }
-    if (((bar_val >> 1) & 0b11) == 2) {
+    if (((bar_val >> 1) & 0x02) == 2) {
         // 64-bit MMIO bar
-        return ((uint64_t) pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + ((bar + 1) * 4)) << 32) | (bar_val & ~0b1111);
+        return ((uint64_t) pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + ((bar + 1) * 4)) << 32) | (bar_val & ~0x0f);
     }
     return 0;
 }

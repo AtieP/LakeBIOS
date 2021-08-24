@@ -9,7 +9,7 @@
 #define Q35_PCI_IO_BASE 0x1000
 
 #define Q35_DRAM_PAM0 0x90
-#define Q35_DRAM_PAM_UNLOCK 0b11
+#define Q35_DRAM_PAM_UNLOCK 0x03
 
 #define Q35_DRAM_SMRAM 0x9d
 #define Q35_DRAM_SMRAM_OPEN (1 << 6)

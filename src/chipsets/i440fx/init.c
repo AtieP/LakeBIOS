@@ -26,9 +26,6 @@ static uint8_t get_interrupt_line(int pirq, uint8_t bus, uint8_t slot, uint8_t f
 
 static void memory_init() {
     print("i440fx: Memory: Initializing");
-    // Avoid vulnerabilities by reloading the BIOS default data
-    i440fx_pmc_pam_lock(5);
-    i440fx_pmc_pam_lock(6);
     // Unlock BIOS data
     i440fx_pmc_pam_unlock(5, 1);
     i440fx_pmc_pam_unlock(6, 1);

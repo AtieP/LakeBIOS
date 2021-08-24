@@ -95,7 +95,7 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
     if (nvme_command(cfg, &cmd, asq, acq, 0, &tail, &head) == -1) {
         goto free_error;
     }
-    uint32_t namespaces = *((uint32_t *) (identify_buffer + 516));
+    uint32_t namespaces = *((uint32_t *) ((uintptr_t) identify_buffer + 516));
     // Get namespace list
     uint32_t *namespace_list = calloc(sizeof(uint32_t) * namespaces, alignment);
     if (!namespace_list) {
@@ -143,7 +143,7 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
             continue;
         }
         struct disk_abstract disk;
-        disk.common.lba_max = *((uint32_t *) (identify_buffer + 0));
+        disk.common.lba_max = *((uint32_t *) ((uintptr_t) identify_buffer + 0));
         disk.common.heads_per_cylinder = 16;
         disk.common.sectors_per_head = 255;
         disk.interface = HAL_DISK_NVME;

@@ -243,7 +243,7 @@ void bochs_display_vga_regs_write(volatile uint8_t *bar2, struct vga_mode *mode)
 void bochs_display_vga_font_write(volatile uint8_t *bar2, const void *font, int height) {
     vga_font_access(bar2, 1);
     for (int i = 0; i < 256; i++) {
-        memcpy((void *) (0xa0000 + (32 * i)), font + (height * i), height);
+        memcpy((void *) (0xa0000 + (32 * i)), (void *) ((uintptr_t) font + (height * i)), height);
     }
     vga_font_access(bar2, 0);
 }
@@ -251,7 +251,7 @@ void bochs_display_vga_font_write(volatile uint8_t *bar2, const void *font, int 
 void bochs_display_vga_font_read(volatile uint8_t *bar2, void *font, int height) {
     vga_font_access(bar2, 1);
     for (int i = 0; i < 256; i++) {
-        memcpy((void *) (font + (height * i)), (void *) (0xa0000 + (32 * i)), height);
+        memcpy((void *) ((uintptr_t) font + (height * i)), (void *) (0xa0000 + (32 * i)), height);
     }
     vga_font_access(bar2, 0);
 }

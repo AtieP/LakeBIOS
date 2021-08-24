@@ -108,7 +108,7 @@ int hal_display_resolution(uint8_t display, int width, int height, int bpp, int 
     } else if (interface == HAL_DISPLAY_VMWARE_VGA && !vga_mode) {
         vmware_vga_high_res(display_abstract->specific.vmware_vga.bar0, width, height, bpp, &pitch);
         uint8_t *fb = display_abstract->common.buffer;
-        for (size_t i = 0; i < width * pitch; i++) {
+        for (size_t i = 0; i < (size_t) width * pitch; i++) {
             fb[i] = 0x00;
         }
     } else {

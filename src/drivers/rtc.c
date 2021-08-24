@@ -22,11 +22,11 @@ void rtc_reset_status_set(uint8_t status) {
 /* QEMU specific */
 
 uint8_t rtc_get_floppy_master_kind() {
-    return (rtc_read(CMOS_FLOPPY) & 0b11110000) >> 4;
+    return (rtc_read(CMOS_FLOPPY) & 0xf0) >> 4;
 }
 
 uint8_t rtc_get_floppy_slave_kind() {
-    return rtc_read(CMOS_FLOPPY) & 0b1111;
+    return rtc_read(CMOS_FLOPPY) & 0x0f;
 }
 
 int rtc_get_low_mem() {

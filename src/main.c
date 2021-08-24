@@ -112,7 +112,7 @@ void bios_main() {
             print("Bootable drive found, jumping to it!\n\n");
             // Jump to it
             // Todo: modify this, this is crusty.
-            asm volatile(
+            __asm__ volatile(
                 "movb $0xfb, (0x7bff)\n\t"
                 "jmp $0x08,$1f\n\t"
                 "1:\n\t"

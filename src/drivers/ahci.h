@@ -102,8 +102,8 @@ struct ahci_prdt {
 #define AHCI_CAP_64 (1 << 31)
 #define AHCI_CAP_SMPS (1 << 28)
 #define AHCI_CAP_SSS (1 << 27)
-#define AHCI_CAP_PORTS_MASK 0b11111
-#define AHCI_CAP_SLOTS_MASK 0b11111
+#define AHCI_CAP_PORTS_MASK 0x1f
+#define AHCI_CAP_SLOTS_MASK 0x1f
 #define AHCI_GHC_CNT_AE (1 << 31)
 #define AHCI_GHC_CNT_RESET (1 << 0)
 #define AHCI_GHC_CAP_EXT_BIOS (1 << 0)
@@ -129,7 +129,7 @@ struct ahci_ghc {
 #define AHCI_PORT_CMD_STS_ST (1 << 0)
 #define AHCI_PORT_TFD_STS_DRQ (1 << 3)
 #define AHCI_PORT_TFD_STS_BSY (1 << 7)
-#define AHCI_PORT_SATA_STS_DET_MASK 0b1111
+#define AHCI_PORT_SATA_STS_DET_MASK 0x0f
 struct ahci_port {
     uint32_t commands_list_addr_low;
     uint32_t commands_list_addr_hi;

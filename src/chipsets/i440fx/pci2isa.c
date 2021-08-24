@@ -19,6 +19,6 @@ void i440fx_pci2isa_pirq_disable(int pirq) {
 void i440fx_pci2isa_pirq_route(int pirq, uint8_t irq) {
     pci_cfg_write_byte(I440FX_PCI2ISA_BUS, I440FX_PCI2ISA_SLOT, I440FX_PCI2ISA_FUNCTION, I440FX_PCI2ISA_PIRQ_A + pirq,
         (pci_cfg_read_byte(I440FX_PCI2ISA_BUS, I440FX_PCI2ISA_SLOT, I440FX_PCI2ISA_FUNCTION, I440FX_PCI2ISA_PIRQ_A + pirq)
-        & ~0b1111) | irq
+        & ~0x0f) | irq
     );
 }

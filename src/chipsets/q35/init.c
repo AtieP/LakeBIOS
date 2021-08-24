@@ -26,9 +26,6 @@ static uint8_t get_interrupt_line(int pirq, uint8_t bus, uint8_t slot, uint8_t f
 
 static void memory_init() {
     print("q35: Memory: Initializing");
-    // Shadow and unshadow BIOS data, to avoid exploits
-    q35_dram_pam_lock(5);
-    q35_dram_pam_lock(6);
     q35_dram_pam_unlock(5, 1);
     q35_dram_pam_unlock(6, 1);
 }

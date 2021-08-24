@@ -84,6 +84,7 @@ void *calloc(size_t size, size_t alignment) {
 }
 
 void free(void *base, size_t size) {
+    uintptr_t base_int = (uintptr_t) base;
     if (!size) {
         print("lakebios: tried to free a zone with 0 size, ignoring");
         return;
@@ -92,7 +93,7 @@ void free(void *base, size_t size) {
         size = (size + OBJECT_SIZE - 1) & ~(OBJECT_SIZE - 1);
     }
     size_t pages = size / OBJECT_SIZE;
-    for (size_t i = 0; i < pages; i++, base += OBJECT_SIZE) {
-        BIT_CLEAR(((uintptr_t) base - alloc_base) / OBJECT_SIZE);
+    for (size_t i = 0; i < pages; i++, base_int += OBJECT_SIZE) {
+        BIT_CLEAR((base_int - alloc_base) / OBJECT_SIZE);
     }
 }

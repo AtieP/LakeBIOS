@@ -15,16 +15,13 @@
 #define Q35_LPC_PIRQ_E 0x68
 #define Q35_LPC_PIRQ_EN (1 << 7)
 
-// Defines for what IRQs/GSIs the PIRQs match.
-// The IRQs can be changed, but the GSIs are
-// hardcoded as per spec
 #define Q35_LPC_PIRQ_A_IRQ 10
-#define Q35_LPC_PIRQ_B_IRQ 11
-#define Q35_LPC_PIRQ_C_IRQ 10
+#define Q35_LPC_PIRQ_B_IRQ 10
+#define Q35_LPC_PIRQ_C_IRQ 11
 #define Q35_LPC_PIRQ_D_IRQ 11
 #define Q35_LPC_PIRQ_E_IRQ 10
-#define Q35_LPC_PIRQ_F_IRQ 11
-#define Q35_LPC_PIRQ_G_IRQ 10
+#define Q35_LPC_PIRQ_F_IRQ 10
+#define Q35_LPC_PIRQ_G_IRQ 11
 #define Q35_LPC_PIRQ_H_IRQ 11
 
 #define Q35_LPC_PIRQ_A_GSI 16
@@ -35,8 +32,6 @@
 #define Q35_LPC_PIRQ_F_GSI 21
 #define Q35_LPC_PIRQ_G_GSI 22
 #define Q35_LPC_PIRQ_H_GSI 23
-
-#define Q35_LPC_ID 0x80 // I/O decode (used for selecting the serial port and floppy ranges)
 
 void q35_lpc_acpi_base(uint16_t base);
 void q35_lpc_acpi_enable();

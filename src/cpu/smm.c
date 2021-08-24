@@ -59,7 +59,7 @@ static void smm_handler_main() {
             print("SMM: Invalid SMM revision");
             for (;;) {}
         }
-        asm volatile("mov %%cr2, %0" : "=r"(regs.eax));
+        __asm__ volatile("mov %%cr2, %0" : "=r"(regs.eax));
         print("SMM: Real mode interrupt vector #0x%x function %x", data, regs.ah);
         for (;;) {}
         if (revision == SMM_REV_32) {
@@ -93,6 +93,6 @@ static void smm_handler_main() {
             for (;;) {}
         }
     }
-    asm volatile("rsm");
+    __asm__ volatile("rsm");
     for (;;) {}
 }
