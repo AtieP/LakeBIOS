@@ -137,6 +137,8 @@ static void vga_font_access(volatile uint8_t *bar2, int unlock) {
 
 /* Initialization functions */
 
+static void hal_submit(struct display_abstract *display);
+
 static void vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
     volatile uint8_t *bar2 = (uint8_t *) (uintptr_t) pci_get_bar(bus, slot, function, 2);
     misc_write(bar2, 0xc3);
@@ -152,7 +154,7 @@ static void vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t functi
     display.interface = HAL_DISPLAY_VGA_BGA;
     display.specific.bga.bar2 = bar2;
     display.specific.bga.fb = (void *) (uintptr_t) pci_get_bar(bus, slot, function, 0);
-    hal_display_submit(&display);
+    hal_submit(&display);
 }
 
 static void non_vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
@@ -162,7 +164,7 @@ static void non_vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t fu
     display.interface = HAL_DISPLAY_BGA;
     display.specific.bga.bar2 = bar2;
     display.specific.bga.fb = (void *) (uintptr_t) pci_get_bar(bus, slot, function, 0);
-    hal_display_submit(&display);
+    hal_submit(&display);
 }
 
 void bochs_display_init() {
@@ -264,4 +266,66 @@ void bochs_display_high_res(volatile uint8_t *bar2, int width, int height, int b
     vbe_write(bar2, BOCHS_DISPI_YRES, height);
     vbe_write(bar2, BOCHS_DISPI_BPP, bpp);
     vbe_write(bar2, BOCHS_DISPI_EN, 0x01 | (!clear ? (1 << 7) : 0x00));
+}
+
+/* HAL Functions */
+
+static int hal_resolution(struct display_abstract *this, int width, int height, int bpp, int clear, int text, int vga_mode) {
+    int pitch = width * (bpp / 8);
+    if (this->interface == HAL_DISPLAY_VGA_BGA && vga_mode) {
+        int bufsize;
+        if (width == 640 && height == 400 && bpp == 4 && text) {
+            bochs_display_vga_regs_write(this->specific.bga.bar2, &vga_mode_80x25x16_text);
+            this->common.buffer = (void *) 0xb8000;
+            bufsize = 80 * 25 * 2;
+        } else if (width == 320 && height == 200 && bpp == 8 && !text) {
+            bochs_display_vga_regs_write(this->specific.bga.bar2, &vga_mode_320x200x256_linear);
+            this->common.buffer = (void *) 0xa0000;
+            bufsize = 320 * 200;
+        } else {
+            return HAL_DISPLAY_ENORES;
+        }
+        if (clear) {
+            for (int i = 0; i < bufsize; i++) {
+                *((uint8_t *) this->common.buffer + i) = 0x00;
+            }
+        }
+        this->properties.vga_mode = 1;
+    } else if (!vga_mode) {
+        bochs_display_high_res(this->specific.bga.bar2, width, height, bpp, clear);
+        this->common.buffer = this->specific.bga.fb;
+        this->properties.vga_mode = 0;
+    } else {
+        return HAL_DISPLAY_ENORES;
+    }
+    this->common.width = width;
+    this->common.height = height;
+    this->common.bpp = bpp;
+    this->common.pitch = pitch;
+    this->properties.text = text;
+    return HAL_DISPLAY_ESUCCESS;
+}
+
+static int hal_font_get(struct display_abstract *this, const void **font, int *width, int *height) {
+    *font = this->font.font;
+    *width = this->font.width;
+    *height = this->font.height;
+    return HAL_DISPLAY_ESUCCESS;
+}
+
+static int hal_font_set(struct display_abstract *this, const void *font, int width, int height) {
+    this->font.font = font;
+    this->font.width = width;
+    this->font.height = height;
+    if (this->properties.vga_mode) {
+        bochs_display_vga_font_write(this->specific.bga.bar2, font, height);
+    }
+    return HAL_DISPLAY_ESUCCESS;
+}
+
+static void hal_submit(struct display_abstract *display) {
+    display->ops.resolution = hal_resolution;
+    display->ops.font_get = hal_font_get;
+    display->ops.font_set = hal_font_set;
+    hal_display_submit(display);
 }

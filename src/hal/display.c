@@ -76,92 +76,57 @@ void hal_display_submit(struct display_abstract *display_abstract) {
 int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int vga_mode) {
     struct display_abstract *display_abstract = &display_inventory[display];
     if (!display_abstract->present) {
-        return -1;
+        return HAL_DISPLAY_ENOFOUND;
     }
-    uint8_t interface = display_abstract->interface;
-    int pitch = width * (bpp / 8);
-    if (interface == HAL_DISPLAY_VGA_BGA && vga_mode) {
-        int bufsize;
-        if (width == 80 && height == 25 && bpp == 4 && text) {
-            bochs_display_vga_regs_write(display_abstract->specific.bga.bar2, &vga_mode_80x25x16_text);
-            display_abstract->common.buffer = (void *) 0xb8000;
-            bufsize = 400;
-        } else if (width == 320 && height == 200 && bpp == 8 && !text) {
-            bochs_display_vga_regs_write(display_abstract->specific.bga.bar2, &vga_mode_320x200x256_linear);
-            display_abstract->common.buffer = (void *) 0xa0000;
-            bufsize = 320 * 200;
-        } else {
-            return -1;
-        }
-        display_abstract->properties.vga_mode = 1;
-        if (clear) {
-            for (int i = 0; i < bufsize; i++) {
-                *((uint8_t *) display_abstract->common.buffer + i) = 0x00;
-            }
-        }
-    } else if ((interface == HAL_DISPLAY_VGA_BGA && !vga_mode) || interface == HAL_DISPLAY_BGA) {
-        bochs_display_high_res(display_abstract->specific.bga.bar2, width, height, bpp, clear);
-        display_abstract->common.buffer = display_abstract->specific.bga.fb;
-        display_abstract->properties.vga_mode = 0;
-    } else if (interface == HAL_DISPLAY_RAMFB) {
-        qemu_ramfb_resolution((uint64_t) (uintptr_t) display_abstract->common.buffer, width, height, bpp, clear);
-    } else if (interface == HAL_DISPLAY_VMWARE_VGA && !vga_mode) {
-        vmware_vga_high_res(display_abstract->specific.vmware_vga.bar0, width, height, bpp, &pitch);
-        uint8_t *fb = display_abstract->common.buffer;
-        for (size_t i = 0; i < (size_t) width * pitch; i++) {
-            fb[i] = 0x00;
-        }
-    } else {
-        return -1;
+    int (*resolution)(struct display_abstract *this, int width, int height, int bpp, int clear, int text, int vga_mode) = 
+        display_abstract->ops.resolution;
+    if (!resolution) {
+        return HAL_DISPLAY_ENOIMPL;
     }
-    display_abstract->common.width = width;
-    display_abstract->common.height = height;
-    display_abstract->common.bpp = bpp;
-    display_abstract->common.pitch = pitch;
-    display_abstract->properties.text = text;
-    return 0;
+    return resolution(display_abstract, width, height, bpp, clear, text, vga_mode);
 }
 
 int hal_display_font_get(uint8_t display, const void **font, int *width, int *height) {
     struct display_abstract *display_abstract = &display_inventory[display];
     if (!display_abstract->present) {
-        return -1;
+        return HAL_DISPLAY_ENOFOUND;
     }
-    *font = display_abstract->font.font;
-    *width = display_abstract->font.width;
-    *height = display_abstract->font.height;
-    return 0;
+    int (*font_get)(struct display_abstract *this, const void **font, int *width, int *height) = 
+        display_abstract->ops.font_get;
+    if (!font_get) {
+        return HAL_DISPLAY_ENOIMPL;
+    }
+    return font_get(display_abstract, font, width, height);
 }
 
 int hal_display_font_set(uint8_t display, const void *font, int width, int height) {
     struct display_abstract *display_abstract = &display_inventory[display];
     if (!display_abstract->present) {
-        return -1;
+        return HAL_DISPLAY_ENOFOUND;
     }
-    if (display_abstract->properties.vga_mode) {
-        if (display_abstract->interface == HAL_DISPLAY_VGA_BGA) {
-            bochs_display_vga_font_write(display_abstract->specific.bga.bar2, font, height);
-        } else {
-            return -1;
-        }
+    int (*font_set)(struct display_abstract *this, const void *font, int width, int height) = 
+        display_abstract->ops.font_set;
+    if (!font_set) {
+        return HAL_DISPLAY_ENOIMPL;
     }
-    display_abstract->font.font = font;
-    display_abstract->font.height = height;
-    display_abstract->font.width = width;
-    return 0;
+    return font_set(display_abstract, font, width, height);
 }
 
 int hal_display_plot_char(uint8_t display, int ch, int x, int y, uint8_t background_color, uint8_t foreground_color) {
     struct display_abstract *display_abstract = &display_inventory[display];
     if (!display_abstract->present) {
-        return -1;
+        return HAL_DISPLAY_ENOIMPL;
     }
+    int width = display_abstract->common.width;
+    int height = display_abstract->common.height;
     if (display_abstract->properties.text) {
+        width /= display_abstract->font.width;
+        height /= display_abstract->font.height;
         int bpp = display_abstract->common.bpp;
         if (bpp == 4) {
-            *((uint16_t *) display_abstract->common.buffer + (y * display_abstract->common.width + x)) = (((uint16_t) background_color << 12) | (uint16_t) foreground_color << 8) | ch;
+            *((uint16_t *) display_abstract->common.buffer + (y * width + x)) = (((uint16_t) background_color << 12) | (uint16_t) foreground_color << 8) | ch;
         } else {
-            return -1;
+            return HAL_DISPLAY_ENOIMPL;
         }
     } else {
         int font_width = display_abstract->font.width;
@@ -186,9 +151,9 @@ int hal_display_plot_char(uint8_t display, int ch, int x, int y, uint8_t backgro
             y++;
         }
     }
-    return 0;
+    return HAL_DISPLAY_ESUCCESS;
 }
 
 int hal_display_get_interface(uint8_t display) {
-    return display_inventory[display].present ? display_inventory[display].interface : -1;
+    return display_inventory[display].present ? display_inventory[display].interface : HAL_DISPLAY_ENOFOUND;
 }

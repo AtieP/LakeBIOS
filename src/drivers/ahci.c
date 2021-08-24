@@ -78,6 +78,8 @@ static void port_deinit(volatile struct ahci_abar *abar, int index) {
     port_free(abar, index);
 }
 
+static void hal_submit(struct disk_abstract *disk, int flp);
+
 static int port_init(volatile struct ahci_abar *abar, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
     port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
@@ -142,7 +144,7 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     disk.specific.ahci.port = index;
     disk.specific.ahci.lba48 = lba48;
     disk.specific.ahci.drive = ATA_DRIVE_MASTER;
-    hal_disk_submit(&disk, 0);
+    hal_submit(&disk, 0);
     return 0;
 }
 
@@ -218,4 +220,43 @@ int ahci_command(volatile struct ahci_abar *abar, int port, int write, int atapi
     } else {
         return 0;
     }
+}
+
+/* HAL Functions */
+
+static int hal_rw(struct disk_abstract *this, void *buf, uint64_t lba, int len, int write) {
+    // TODO: PRDTs
+    struct ahci_command_tbl *tbl = calloc(sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt), 128);
+    if (!tbl) {
+        return HAL_DISK_ENOMEM;
+    }
+    tbl->command_fis.fis_kind = AHCI_FIS_H2D;
+    tbl->command_fis.flags = 1 << 7;
+    tbl->command_fis.device = this->specific.ahci.drive | (1 << 6); // LBA addressing
+    tbl->command_fis.command = write ? ATA_COMMAND_WRITE_DMA_EXT : ATA_COMMAND_READ_DMA_EXT;
+    tbl->command_fis.lba0 = (uint8_t) (lba);
+    tbl->command_fis.lba1 = (uint8_t) (lba >> 8);
+    tbl->command_fis.lba2 = (uint8_t) (lba >> 16);
+    tbl->command_fis.lba3 = (uint8_t) (lba >> 24);
+    tbl->command_fis.lba4 = (uint8_t) (lba >> 32);
+    tbl->command_fis.lba5 = (uint8_t) (lba >> 40);
+    tbl->command_fis.count_low = (uint8_t) (len / 512);
+    tbl->command_fis.count_hi = (uint8_t) ((len / 512) >> 8);
+    tbl->prdt[0].data_addr_low = (uint32_t) buf;
+    tbl->prdt[0].description = len - 1;
+    int ret = ahci_command(
+        this->specific.ahci.abar,
+        this->specific.ahci.port,
+        write,
+        this->specific.ahci.atapi,
+        tbl,
+        1
+    );
+    free(tbl, sizeof(struct ahci_command_tbl) + sizeof(struct ahci_prdt));
+    return ret != 0 ? HAL_DISK_EUNK : HAL_DISK_ESUCCESS;
+}
+
+static void hal_submit(struct disk_abstract *disk, int flp) {
+    disk->ops.rw = hal_rw;
+    hal_disk_submit(disk, flp);
 }

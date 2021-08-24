@@ -34,10 +34,21 @@ struct display_abstract {
         } bga;
         struct {
             uint16_t bar0;
+            void *fb;
             uint32_t *fifo;
         } vmware_vga;
     } specific;
+    struct {
+        int (*resolution)(struct display_abstract *this, int width, int height, int bpp, int clear, int text, int vga_mode);
+        int (*font_get)(struct display_abstract *this, const void **font, int *width, int *height);
+        int (*font_set)(struct display_abstract *this, const void *font, int width, int height);
+    } ops;
 };
+
+#define HAL_DISPLAY_ESUCCESS  0
+#define HAL_DISPLAY_ENOFOUND -1
+#define HAL_DISPLAY_ENORES   -2
+#define HAL_DISPLAY_ENOIMPL  -3
 
 void hal_display_submit(struct display_abstract *display_abstract);
 int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int vga_mode);

@@ -44,8 +44,8 @@
 #define PCI_BAR_MEM_32  0x00
 #define PCI_BAR_IO      0x01
 #define PCI_BAR_MEM_64  0x02
-#define PCI_BAR_PREF_32 0x08
-#define PCI_BAR_PREF_64 0x0c
+#define PCI_BAR_PREF_32 0x04
+#define PCI_BAR_PREF_64 0x06
 
 uint8_t pci_cfg_read_byte(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset);
 uint16_t pci_cfg_read_word(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset);

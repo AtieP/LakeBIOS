@@ -80,14 +80,8 @@ void bios_main() {
     bochs_display_init();
     // VMWare VGA
     vmware_vga_init();
-    int display_interface = hal_display_get_interface(0x00);
-    if (display_interface != -1) {
-        if (display_interface == HAL_DISPLAY_VGA || display_interface == HAL_DISPLAY_VGA_BGA) {
-            hal_display_resolution(0x00, 80, 25, 4, 1, 1, 1);
-        } else {
-            hal_display_resolution(0x00, 80 * 8, 25 * 16, 32, 1, 0, 0);
-        }
-    }
+    // hal_display_resolution(0x00, 640, 400, 4, 1, 1, 1);
+    hal_display_resolution(0x00, 640, 400, 32, 1, 0, 0);
     hal_display_font_set(0x00, &romfont_8x16, 8, 16);
     puts_display("LakeBIOS - x86 Firmware\nMade by Atie - https://github.com/AtieP/LakeBIOS\n\n");
     // Populate real mode handlers (maybe move this somewhere else)

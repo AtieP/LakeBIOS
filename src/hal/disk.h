@@ -43,7 +43,17 @@ struct disk_abstract {
             int drive;
         } ata_pio;
     } specific;
+    struct ops {
+        int (*rw)(struct disk_abstract *this, void *buf, uint64_t lba, int len, int write);
+    } ops;
 };
+
+#define HAL_DISK_ESUCCESS  0
+#define HAL_DISK_EBOUNDS  -1
+#define HAL_DISK_ENOIMPL  -2
+#define HAL_DISK_ENOMEM   -3
+#define HAL_DISK_ESIZE    -4
+#define HAL_DISK_EUNK     -5
 
 void hal_disk_submit(struct disk_abstract *disk, int flp);
 int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write);

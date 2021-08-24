@@ -32,7 +32,7 @@ static int get_bar_type(uint32_t bar) {
     if (bar & 1) {
         return PCI_BAR_IO;
     }
-    return bar & 0x0f;
+    return (bar & 0x0f) >> 1;
 }
 
 static int allocate_bus() {
@@ -47,7 +47,7 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     if (type == PCI_BAR_IO) {
         pci_cfg_write_dword(bus, slot, function, offset, 0xffffffff);
         bar_size = (uint64_t) pci_cfg_read_dword(bus, slot, function, offset);
-        bar_size &= ~0x02;
+        bar_size &= ~0x03;
         bar_size = ~((uint32_t) bar_size) + 1;
         pci_cfg_write_dword(bus, slot, function, offset, (uint32_t) bar_orig_value);
     } else if (type == PCI_BAR_MEM_32 || type == PCI_BAR_PREF_32) {
@@ -57,7 +57,7 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         bar_size = ~((uint32_t) bar_size) + 1;
         pci_cfg_write_dword(bus, slot, function, offset, (uint32_t) bar_orig_value);
     } else if (type == PCI_BAR_MEM_64 || type == PCI_BAR_PREF_64) {
-        bar_orig_value |= (uint64_t) pci_cfg_read_dword(bus, slot, function, offset + 4) << 32;
+        bar_orig_value |= ((uint64_t) pci_cfg_read_dword(bus, slot, function, offset + 4) << 32);
         // Lower half of size
         pci_cfg_write_dword(bus, slot, function, offset, 0xffffffff);
         bar_size = pci_cfg_read_dword(bus, slot, function, offset);
@@ -66,7 +66,7 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         pci_cfg_write_dword(bus, slot, function, offset, (uint32_t) bar_orig_value);
         // Higher half of size
         pci_cfg_write_dword(bus, slot, function, offset + 4, 0xffffffff);
-        bar_size |= (uint64_t) (~(pci_cfg_read_dword(bus, slot, function, offset + 4) & ~0x0f) + 1) << 32;
+        bar_size |= (uint64_t) ~pci_cfg_read_dword(bus, slot, function, offset + 4) << 32;
         pci_cfg_write_dword(bus, slot, function, offset + 4, (uint32_t) (bar_orig_value >> 32));
     }
     // Does the BAR exist?
@@ -84,9 +84,9 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         io_base = temp_io_base + bar_size;
     }
     if (type == PCI_BAR_MEM_32 || type == PCI_BAR_MEM_64) {
-        uintptr_t temp_mem_base = mem_base;
+        uint64_t temp_mem_base = (uint64_t) mem_base;
         temp_mem_base = (temp_mem_base + (bar_size - 1)) & ~(bar_size - 1);
-        if (temp_mem_base + bar_size > mem_limit) {
+        if (temp_mem_base + bar_size > (uint64_t) mem_limit) {
             print("PCI: Cannot allocate Memory BAR #%d of Bus %d Slot %d Function %d because there isn't enough space", bar, bus, slot, function);
             return type;
         }
@@ -97,9 +97,9 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         mem_base = temp_mem_base + bar_size;
     }
     if (type == PCI_BAR_PREF_32 || type == PCI_BAR_PREF_64){
-        uintptr_t temp_pref_base = pref_base;
+        uint64_t temp_pref_base = (uint64_t) pref_base;
         temp_pref_base = (temp_pref_base + (bar_size - 1)) & ~(bar_size - 1);
-        if (temp_pref_base + bar_size > pref_limit) {
+        if (temp_pref_base + bar_size > (uint64_t) pref_limit) {
             print("PCI: Cannot allocate Prefetchable BAR #%d of Bus %d Slot %d Function %d because there isn't enough space", bar, bus, slot, function);
             return type;
         }
@@ -326,13 +326,13 @@ uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     uint32_t bar_val = pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + (bar * 4));
     if (bar_val & 1) {
         // I/O bar
-        return (uint64_t) ((uint16_t) bar_val & ~0x02);
+        return (uint64_t) ((uint16_t) bar_val & ~0x03);
     }
-    if (((bar_val >> 1) & 0x02) == 0) {
+    if (((bar_val >> 1) & 0x03) == 0) {
         // 32-bit MMIO bar
         return (uint64_t) (bar_val & ~0x0f);
     }
-    if (((bar_val >> 1) & 0x02) == 2) {
+    if (((bar_val >> 1) & 0x03) == 2) {
         // 64-bit MMIO bar
         return ((uint64_t) pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + ((bar + 1) * 4)) << 32) | (bar_val & ~0x0f);
     }

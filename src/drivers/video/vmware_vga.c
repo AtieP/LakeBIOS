@@ -10,6 +10,8 @@
 // 2. Sometimes the text misteriously disappears but when you toggle full screen it appears
 // 3. Legacy VGA functions
 
+/* Read/Write from/to BAR 0 */
+
 static uint32_t reg_read(uint16_t bar0, size_t index) {
     outd(bar0 + VMWARE_VGA_INDEX, index);
     return ind(bar0 + VMWARE_VGA_VALUE);
@@ -19,6 +21,8 @@ static void reg_write(uint16_t bar0, size_t index, uint32_t value) {
     outd(bar0 + VMWARE_VGA_INDEX, index);
     outd(bar0 + VMWARE_VGA_VALUE, value);
 }
+
+/* Functions for figuring out capabilities */
 
 static int is_capable(uint16_t bar0, uint32_t capability) {
     // Read magic and ensure ID is greater than 0
@@ -39,6 +43,10 @@ static int is_reg_supported(uint16_t bar0, uint32_t reg) {
     }
 }
 
+/* Initialization functions */
+
+static void hal_submit(struct display_abstract *display);
+
 static void controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
     uint16_t bar0 = (uint16_t) pci_get_bar(bus, slot, function, 0);
     uint32_t *fifo = (uint32_t *) (uintptr_t) pci_get_bar(bus, slot, function, 2);
@@ -53,10 +61,12 @@ static void controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
     }
     struct display_abstract vmware_vga;
     vmware_vga.interface = HAL_DISPLAY_VMWARE_VGA;
-    vmware_vga.common.buffer = (void *) (uintptr_t) pci_get_bar(bus, slot, function, 1);
+    void *fb = (void *) (uintptr_t) pci_get_bar(bus, slot, function, 1);
+    vmware_vga.common.buffer = fb;
     vmware_vga.specific.vmware_vga.bar0 = bar0;
+    vmware_vga.specific.vmware_vga.fb = fb;
     vmware_vga.specific.vmware_vga.fifo = fifo;
-    hal_display_submit(&vmware_vga);
+    hal_submit(&vmware_vga);
 }
 
 void vmware_vga_init() {
@@ -80,6 +90,8 @@ void vmware_vga_init() {
     print("VMWare VGA: Finished initializing controller");
 }
 
+/* Exposes functions */
+
 void vmware_vga_high_res(uint16_t bar0, int width, int height, int bpp, int *pitch) {
     reg_write(bar0, VMWARE_VGA_ENABLE, 1);
     reg_write(bar0, VMWARE_VGA_WIDTH, width);
@@ -87,5 +99,50 @@ void vmware_vga_high_res(uint16_t bar0, int width, int height, int bpp, int *pit
     reg_write(bar0, VMWARE_VGA_BPP, bpp);
     if (is_capable(bar0, VMWARE_VGA_CAP_PITCHLOCK)) {
         *pitch = reg_read(bar0, VMWARE_VGA_PITCHLOCK);
+    } else {
+        *pitch = width * (bpp / 8);
     }
+}
+
+/* HAL Functions */
+
+static int hal_resolution(struct display_abstract *this, int width, int height, int bpp, int clear, int text, int vga_mode) {
+    if (vga_mode || text) {
+        return HAL_DISPLAY_ENOIMPL;
+    }
+    int pitch;
+    vmware_vga_high_res(this->specific.vmware_vga.bar0, width, height, bpp, &pitch);
+    this->common.buffer = this->specific.vmware_vga.fb;
+    if (clear) {
+        for (size_t i = 0; i < (size_t) pitch * height; i++) {
+            *((uint8_t *) this->common.buffer) = 0x00;
+        }
+    }
+    this->common.width = width;
+    this->common.height = height;
+    this->common.bpp = bpp;
+    this->common.pitch = pitch;
+    this->properties.text = text;
+    return HAL_DISPLAY_ESUCCESS;
+}
+
+static int hal_font_get(struct display_abstract *this, const void **font, int *width, int *height) {
+    *font = this->font.font;
+    *width = this->font.width;
+    *height = this->font.height;
+    return HAL_DISPLAY_ESUCCESS;
+}
+
+static int hal_font_set(struct display_abstract *this, const void *font, int width, int height) {
+    this->font.font = font;
+    this->font.width = width;
+    this->font.height = height;
+    return HAL_DISPLAY_ESUCCESS;
+}
+
+static void hal_submit(struct display_abstract *display) {
+    display->ops.resolution = hal_resolution;
+    display->ops.font_get = hal_font_get;
+    display->ops.font_set = hal_font_set;
+    hal_display_submit(display);
 }

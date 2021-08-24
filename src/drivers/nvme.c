@@ -20,6 +20,8 @@ static int get_mpsmin(volatile struct nvme_configuration *cfg) {
     return (cfg->capabilities >> NVME_CFG_CAP_MPSMIN_SHIFT) & NVME_CFG_CAP_MPSMIN_MASK;
 }
 
+static void hal_submit(struct disk_abstract *disk, int flp);
+
 static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_function) {
     int not_initialized_namespaces = 0;
     pci_control_set(nvme_bus, nvme_slot, nvme_function, PCI_CFG_COMMAND_BUS_MASTER | PCI_CFG_COMMAND_IO_ENABLE | PCI_CFG_COMMAND_MEM_ENABLE);
@@ -154,7 +156,7 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
         disk.specific.nvme.queue_id = 1;
         disk.specific.nvme.head = 0;
         disk.specific.nvme.tail = 0;
-        hal_disk_submit(&disk, 0);
+        hal_submit(&disk, 0);
     }
     free(namespace_list, namespaces * sizeof(uint32_t));
     goto free_success;
@@ -225,4 +227,28 @@ int nvme_command(
     *tail_ptr = tail;
     *head_ptr = head;
     return 0;
+}
+
+static int hal_rw(struct disk_abstract *this, void *buf, uint64_t lba, int len, int write) {
+    struct nvme_submission_entry cmd = {0};
+    cmd.opcode = write ? 0x01 : 0x02;
+    cmd.namespace_id = this->specific.nvme.namespace_id;
+    cmd.prp1 = (uint64_t) (uintptr_t) buf;
+    cmd.cmd_specific[0] = (uint32_t) lba;
+    cmd.cmd_specific[1] = (uint32_t) (lba >> 32);
+    cmd.cmd_specific[2] = (uint16_t) (len / 512) - 1;
+    return nvme_command(
+        this->specific.nvme.cfg,
+        &cmd,
+        this->specific.nvme.sq,
+        this->specific.nvme.cq,
+        this->specific.nvme.queue_id,
+        &this->specific.nvme.tail,
+        &this->specific.nvme.head
+    ) != 0 ? HAL_DISK_EUNK : HAL_DISK_ESUCCESS;
+}
+
+static void hal_submit(struct disk_abstract *disk, int flp) {
+    disk->ops.rw = hal_rw;
+    hal_disk_submit(disk, flp);
 }
