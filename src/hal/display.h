@@ -3,11 +3,12 @@
 
 #include <stdint.h>
 
-#define HAL_DISPLAY_VGA 0x01
-#define HAL_DISPLAY_BGA 0x02
-#define HAL_DISPLAY_VGA_BGA 0x03
-#define HAL_DISPLAY_RAMFB 0x04
+#define HAL_DISPLAY_VGA        0x01
+#define HAL_DISPLAY_BGA        0x02
+#define HAL_DISPLAY_VGA_BGA    0x03
+#define HAL_DISPLAY_RAMFB      0x04
 #define HAL_DISPLAY_VMWARE_VGA 0x05
+
 struct display_abstract {
     int present;
     int interface;
@@ -49,8 +50,9 @@ struct display_abstract {
 #define HAL_DISPLAY_ENOFOUND -1
 #define HAL_DISPLAY_ENORES   -2
 #define HAL_DISPLAY_ENOIMPL  -3
+#define HAL_DISPLAY_ENOMORE  -4
 
-void hal_display_submit(struct display_abstract *display_abstract);
+int hal_display_submit(struct display_abstract *display_abstract);
 int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int vga_mode);
 int hal_display_font_get(uint8_t display, const void **font, int *width, int *height);
 int hal_display_font_set(uint8_t display, const void *font, int width, int height);

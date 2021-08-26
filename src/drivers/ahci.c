@@ -78,7 +78,7 @@ static void port_deinit(volatile struct ahci_abar *abar, int index) {
     port_free(abar, index);
 }
 
-static void hal_submit(struct disk_abstract *disk, int flp);
+static int hal_submit(struct disk_abstract *disk, int flp);
 
 static int port_init(volatile struct ahci_abar *abar, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
@@ -144,7 +144,10 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     disk.specific.ahci.port = index;
     disk.specific.ahci.lba48 = lba48;
     disk.specific.ahci.drive = ATA_DRIVE_MASTER;
-    hal_submit(&disk, 0);
+    if (hal_submit(&disk, 0) == HAL_DISK_ENOMORE) {
+        port_deinit(abar, index);
+        return -1;
+    }
     return 0;
 }
 
@@ -256,7 +259,7 @@ static int hal_rw(struct disk_abstract *this, void *buf, uint64_t lba, int len, 
     return ret != 0 ? HAL_DISK_EUNK : HAL_DISK_ESUCCESS;
 }
 
-static void hal_submit(struct disk_abstract *disk, int flp) {
+static int hal_submit(struct disk_abstract *disk, int flp) {
     disk->ops.rw = hal_rw;
-    hal_disk_submit(disk, flp);
+    return hal_disk_submit(disk, flp);
 }

@@ -64,9 +64,7 @@ struct nvme_submission_entry {
     uint32_t cmd_specific[6];
 } __attribute__((__packed__));
 
-#define NVME_C_ENT_STS_PHASE (1 << 16)
-#define NVME_C_ENT_STS_SF_SHIFT 17
-#define NVME_C_ENT_STS_SF_MASK 0xffff
+#define NVME_C_ENT_STS_PHASE (1 << 0)
 struct nvme_completion_entry {
     uint32_t command_specific;
     uint32_t reserved;
@@ -80,6 +78,6 @@ void nvme_init();
 int nvme_command(
     volatile struct nvme_configuration *cfg, struct nvme_submission_entry *command,
     volatile struct nvme_submission_entry *sq, volatile struct nvme_completion_entry *cq,
-    int id, uint32_t *tail_ptr, uint32_t *head_ptr);
+    int id, uint32_t *tail_ptr, uint32_t *head_ptr, int *phase);
 
 #endif

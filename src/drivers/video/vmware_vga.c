@@ -45,7 +45,7 @@ static int is_reg_supported(uint16_t bar0, uint32_t reg) {
 
 /* Initialization functions */
 
-static void hal_submit(struct display_abstract *display);
+static int hal_submit(struct display_abstract *display);
 
 static void controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
     uint16_t bar0 = (uint16_t) pci_get_bar(bus, slot, function, 0);
@@ -140,9 +140,9 @@ static int hal_font_set(struct display_abstract *this, const void *font, int wid
     return HAL_DISPLAY_ESUCCESS;
 }
 
-static void hal_submit(struct display_abstract *display) {
+static int hal_submit(struct display_abstract *display) {
     display->ops.resolution = hal_resolution;
     display->ops.font_get = hal_font_get;
     display->ops.font_set = hal_font_set;
-    hal_display_submit(display);
+    return hal_display_submit(display);
 }

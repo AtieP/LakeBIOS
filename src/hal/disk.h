@@ -33,6 +33,7 @@ struct disk_abstract {
             uint32_t tail;
             uint32_t head;
             int namespace_id;
+            int phase;
         } nvme;
         struct {
             uint16_t io_base;
@@ -54,8 +55,9 @@ struct disk_abstract {
 #define HAL_DISK_ENOMEM   -3
 #define HAL_DISK_ESIZE    -4
 #define HAL_DISK_EUNK     -5
+#define HAL_DISK_ENOMORE  -6
 
-void hal_disk_submit(struct disk_abstract *disk, int flp);
+int hal_disk_submit(struct disk_abstract *disk, int flp);
 int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write);
 struct disk_abstract *hal_disk_get(uint8_t bios_dl);
 

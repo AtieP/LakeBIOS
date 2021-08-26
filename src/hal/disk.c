@@ -22,17 +22,26 @@ static const char *disk_type_to_name(int type) {
     }
 }
 
-void hal_disk_submit(struct disk_abstract *disk, int flp) {
+int hal_disk_submit(struct disk_abstract *disk, int flp) {
     print("HAL: Submitting a: %s", disk_type_to_name(disk->interface));
     if (!flp) {
+        if (disk_flp_dl == 0x80) {
+            print("HAL: Could not submit a \"%s\" because there aren't any free slots anymore", disk_type_to_name(disk->interface));
+            return HAL_DISK_ENOMORE;
+        }
         memcpy(&disk_inventory[disk_hdd_dl], disk, sizeof(struct disk_abstract));
         disk_inventory[disk_hdd_dl].present = 1;
         disk_hdd_dl++;
     } else {
+        if (disk_hdd_dl == 0xff) {
+            print("HAL: Could not submit a \"%s\" because there aren't any free slots anymore", disk_type_to_name(disk->interface));
+            return HAL_DISK_ENOMORE;
+        }
         memcpy(&disk_inventory[disk_flp_dl], disk, sizeof(struct disk_abstract));
         disk_inventory[disk_flp_dl].present = 1;
         disk_flp_dl++;
     }
+    return HAL_DISK_ESUCCESS;
 }
 
 int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write) {
