@@ -2,11 +2,10 @@
 Firmware for I440FX and Q35. Meant to be ran in emulators, specially QEMU.
 
 # Features
-- SMM
-- PIC, PS/2, Memory dectection
-- AHCI
-- NVME
-- Loading a bootsector and jumping to it!
+- Basic chipset initialization (QEMU i440fx and QEMU Q35 supported) 
+- Device set up (PCI, PCI bridges, disk controllers, displays...) 
+- Clean HAL with modularization
+- A WIP Legacy BIOS frontend and possibly EFI boot/runtime service support
 
 # Testing
 `make all run`
