@@ -1,5 +1,6 @@
 #include <chipsets/i440fx.h>
 #include <chipsets/i440fx/acpi.h>
+#include <chipsets/i440fx/hal.h>
 #include <chipsets/i440fx/pci2isa.h>
 #include <chipsets/i440fx/pm.h>
 #include <chipsets/i440fx/pmc.h>
@@ -8,6 +9,7 @@
 #include <drivers/pci.h>
 #include <drivers/pic.h>
 #include <drivers/ps2.h>
+#include <hal/power.h>
 #include <tools/string.h>
 #include <tools/print.h>
 
@@ -34,6 +36,16 @@ static void memory_init() {
 static void early_acpi_init() {
     print("i440fx: PM: Early initialization");
     i440fx_pm_acpi_base(I440FX_ACPI_BASE);
+    struct power_abstract i440fx_power;
+    i440fx_power.interface = HAL_POWER_I440FX;
+    i440fx_power.ops.reset = i440fx_hal_power_reset;
+    i440fx_power.ops.resume = NULL;
+    i440fx_power.ops.s1 = NULL;
+    i440fx_power.ops.s2 = NULL;
+    i440fx_power.ops.s3 = i440fx_hal_power_s3;
+    i440fx_power.ops.s4 = i440fx_hal_power_s4;
+    i440fx_power.ops.s5 = i440fx_hal_power_s5;
+    hal_power_submit(&i440fx_power);   
 }
 
 static void smm_init() {
@@ -70,7 +82,7 @@ static void irqs_init() {
 static void isa_init() {
     print("i440fx: ISA: Initializing");
     if (ps2_init() != 0) {
-        print("i440fx: ISA: Could not initialize PS/2 controller/keyboard/mouse");
+        print("i440fx: ISA: Could not initialize PS/2");
         for (;;) {}
     }
 }

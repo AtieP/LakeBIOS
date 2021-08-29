@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <cpu/misc.h>
 #include <drivers/nvme.h>
 #include <drivers/pci.h>
 #include <hal/disk.h>
@@ -27,7 +28,9 @@ static int get_mpsmin(volatile struct nvme_configuration *cfg) {
 static void controller_reset(volatile struct nvme_configuration *cfg) {
     print("NVME: Resetting controller...");
     cfg->controller_config &= ~NVME_CFG_CC_EN;
-    while (cfg->controller_status & NVME_CFG_CS_RDY);
+    while (cfg->controller_status & NVME_CFG_CS_RDY) {
+        pause();
+    }
 }
 
 static int hal_submit(struct disk_abstract *disk, int flp);
@@ -256,7 +259,9 @@ int nvme_command(
     }
     *s_tail_doorbell = *tail_ptr;
     // Wait for it to finish
-    while (!((cq[*head_ptr].status & NVME_C_ENT_STS_PHASE) == *phase));
+    while (!((cq[*head_ptr].status & NVME_C_ENT_STS_PHASE) == *phase)) {
+        pause();
+    }
     if (cq[*head_ptr].status >> 1) {
         return -1;
     }

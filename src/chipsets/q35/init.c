@@ -1,12 +1,14 @@
 #include <chipsets/q35.h>
 #include <chipsets/q35/acpi.h>
 #include <chipsets/q35/dram.h>
+#include <chipsets/q35/hal.h>
 #include <chipsets/q35/lpc.h>
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <drivers/pci.h>
 #include <drivers/pic.h>
 #include <drivers/ps2.h>
+#include <hal/power.h>
 #include <tools/print.h>
 #include <tools/string.h>
 
@@ -35,6 +37,16 @@ static void early_acpi_init() {
     // Enable ACPI registers
     q35_lpc_acpi_base(Q35_ACPI_BASE);
     q35_lpc_acpi_enable();
+    struct power_abstract q35_power;
+    q35_power.interface = HAL_POWER_Q35;
+    q35_power.ops.reset = q35_hal_power_reset;
+    q35_power.ops.resume = NULL;
+    q35_power.ops.s1 = NULL;
+    q35_power.ops.s2 = NULL;
+    q35_power.ops.s3 = q35_hal_power_s3;
+    q35_power.ops.s4 = q35_hal_power_s4;
+    q35_power.ops.s5 = q35_hal_power_s5;
+    hal_power_submit(&q35_power);
 }
 
 static void smm_init() {
@@ -83,7 +95,7 @@ static void isa_init() {
     print("q35: ISA: Initializing");
     // PS/2 init
     if (ps2_init() != 0) {
-        print("q35: ISA: Could not initialize PS/2 controller/keyboard/mouse");
+        print("q35: ISA: Could not initialize PS/2");
         for (;;) {}
     }
 }

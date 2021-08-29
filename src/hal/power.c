@@ -44,57 +44,57 @@ int hal_power_resume() {
     return resume(&power_module);
 }
 
-int hal_power_enter_s1() {
+int hal_power_s1() {
     if (!power_module.present) {
         return HAL_POWER_ENOFOUND;
     }
-    int (*enter_s1)(struct power_abstract *this) = power_module.ops.enter_s1;
-    if (!enter_s1) {
+    int (*s1)(struct power_abstract *this) = power_module.ops.s1;
+    if (!s1) {
         return HAL_POWER_ENOIMPL;
     }
-    return enter_s1(&power_module);
+    return s1(&power_module);
 }
 
-int hal_power_enter_s2() {
+int hal_power_s2() {
     if (!power_module.present) {
         return HAL_POWER_ENOFOUND;
     }
-    int (*enter_s2)(struct power_abstract *this) = power_module.ops.enter_s2;
-    if (!enter_s2) {
+    int (*s2)(struct power_abstract *this) = power_module.ops.s2;
+    if (!s2) {
         return HAL_POWER_ENOIMPL;
     }
-    return enter_s2(&power_module);
+    return s2(&power_module);
 }
 
-int hal_power_enter_s3() {
+int hal_power_s3() {
     if (!power_module.present) {
         return HAL_POWER_ENOFOUND;
     }
-    int (*enter_s3)(struct power_abstract *this) = power_module.ops.enter_s3;
-    if (!enter_s3) {
+    int (*s3)(struct power_abstract *this) = power_module.ops.s3;
+    if (!s3) {
         return HAL_POWER_ENOIMPL;
     }
-    return enter_s3(&power_module);
+    return s3(&power_module);
 }
 
-int hal_power_enter_s4() {
+int hal_power_s4() {
     if (!power_module.present) {
         return HAL_POWER_ENOFOUND;
     }
-    int (*enter_s4)(struct power_abstract *this) = power_module.ops.enter_s4;
-    if (!enter_s4) {
+    int (*s4)(struct power_abstract *this) = power_module.ops.s4;
+    if (!s4) {
         return HAL_POWER_ENOIMPL;
     }
-    return enter_s4(&power_module);
+    return s4(&power_module);
 }
 
-int hal_power_enter_s5() {
+int hal_power_s5() {
     if (!power_module.present) {
         return HAL_POWER_ENOFOUND;
     }
-    int (*enter_s5)(struct power_abstract *this) = power_module.ops.enter_s5;
-    if (!enter_s5) {
+    int (*s5)(struct power_abstract *this) = power_module.ops.s5;
+    if (!s5) {
         return HAL_POWER_ENOIMPL;
     }
-    return enter_s5(&power_module);
+    return s5(&power_module);
 }

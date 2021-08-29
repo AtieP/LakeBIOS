@@ -10,6 +10,7 @@
 #include <drivers/rtc.h>
 #include <hal/disk.h>
 #include <hal/display.h>
+#include <hal/power.h>
 #include <paravirt/qemu.h>
 #include <tools/alloc.h>
 #include <tools/bswap.h>
@@ -46,10 +47,11 @@ __attribute__((__section__(".bios_init"), __used__))
 void bios_main() {
     // Force a hard reboot
     if (rtc_reset_status_get() != 0x00) {
-        // PCI reset
-        uint8_t value = inb(0xcf9) & ~6;
-        outb(0xcf9, value | 2);
-        outb(0xcf9, value | 6);
+        if (rtc_reset_status_get() == 0xfe) {
+            print("Resuming from S3. Nice! Sadly, everything has to be reset, because resume from S3 is not supported yet.");
+        }
+        rtc_reset_status_set(0x00);
+        hal_power_reset();
         for (;;) {}
     }
     uint16_t vendor_id = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);

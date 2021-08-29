@@ -1,3 +1,4 @@
+#include <cpu/misc.h>
 #include <cpu/pio.h>
 #include <paravirt/qemu.h>
 #include <tools/bswap.h>
@@ -27,12 +28,16 @@ void qemu_fw_cfg_read(uint16_t selector, void *buf, size_t len, size_t offset) {
     cmd.control = bswap32(((uint32_t) selector << 16) | QEMU_FW_CFG_CMD_SKIP | QEMU_FW_CFG_CMD_SELECT);
     cmd.length = bswap32(offset);
     outd(QEMU_PORT_DMA + 4, bswap32((uint32_t) &cmd));
-    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR);
+    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR) {
+        pause();
+    }
     cmd.control = bswap32(((uint32_t) selector << 16) | QEMU_FW_CFG_CMD_READ);
     cmd.length = bswap32(len);
     cmd.address = bswap64((uint64_t) (uintptr_t) buf);
     outd(QEMU_PORT_DMA + 4, bswap32((uint32_t) &cmd));
-    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR);
+    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR) {
+        pause();
+    }
 }
 
 void qemu_fw_cfg_write(uint16_t selector, const void *buf, size_t len, size_t offset) {
@@ -40,12 +45,16 @@ void qemu_fw_cfg_write(uint16_t selector, const void *buf, size_t len, size_t of
     cmd.control = bswap32(((uint32_t) selector << 16) | QEMU_FW_CFG_CMD_SKIP | QEMU_FW_CFG_CMD_SELECT);
     cmd.length = bswap32(offset);
     outd(QEMU_PORT_DMA + 4, bswap32((uint32_t) &cmd));
-    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR);
+    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR) {
+        pause();
+    }
     cmd.control = bswap32(((uint32_t) selector << 16) | QEMU_FW_CFG_CMD_WRITE);
     cmd.length = bswap32(len);
     cmd.address = bswap64((uint64_t) (uintptr_t) buf);
     outd(QEMU_PORT_DMA + 4, bswap32((uint32_t) &cmd));
-    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR);
+    while (cmd.control & ~QEMU_FW_CFG_CMD_ERROR) {
+        pause();
+    }
 }
 
 int qemu_ramfb_detect() {

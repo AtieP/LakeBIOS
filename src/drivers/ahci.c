@@ -1,3 +1,4 @@
+#include <cpu/misc.h>
 #include <cpu/pio.h>
 #include <drivers/ahci.h>
 #include <drivers/ata_common.h>
@@ -6,7 +7,6 @@
 #include <tools/alloc.h>
 #include <tools/print.h>
 #include <tools/string.h>
-#include <tools/wait.h>
 
 static int s64a_supported(volatile struct ahci_abar *abar) {
     return abar->ghc.hba_capabilities & AHCI_CAP_64;
@@ -70,7 +70,9 @@ static void port_deinit(volatile struct ahci_abar *abar, int index) {
     // Stop execution
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
     port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
-    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR));
+    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR)) {
+        pause();
+    }
     // No more interrupts
     port->interrupt_enable = 0;
     port->interrupt_status = 0xffffffff;
@@ -83,7 +85,9 @@ static int hal_submit(struct disk_abstract *disk, int flp);
 static int port_init(volatile struct ahci_abar *abar, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
     port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
-    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR));
+    while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR)) {
+        pause();
+    }
     port->interrupt_enable = 0;
     port->interrupt_status = 0xffffffff;
     if (port_alloc(abar, index) != 0) {
@@ -92,7 +96,6 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     if (sss_supported(abar)) {
         // Staggered spinup
         port->command_status |= AHCI_PORT_CMD_STS_SUD;
-        wait(1000);
     }
     // Device must be brought up
     if ((port->sata_status & AHCI_PORT_SATA_STS_DET_MASK) != 3) {
@@ -102,7 +105,6 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     port->command_status |= AHCI_PORT_CMD_STS_FRE; // Otherwise, the status bits get stuck
     // Clear errors and wait the device for being ready
     port->sata_error |= port->sata_error;
-    wait(1000);
     if (port->task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ)) {
         port_deinit(abar, index);
         return -1;
@@ -160,7 +162,9 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
     abar->ghc.global_hba_control |= AHCI_GHC_CNT_AE;
     // Reset
     abar->ghc.global_hba_control |= AHCI_GHC_CNT_RESET;
-    while (abar->ghc.global_hba_control & AHCI_GHC_CNT_RESET);
+    while (abar->ghc.global_hba_control & AHCI_GHC_CNT_RESET) {
+        pause();
+    }
     for (int i = 0; i < get_ports_silicon(abar); i++) {
         if (port_implemented(abar, i)) {
             if (port_init(abar, i) == 0) {
@@ -215,9 +219,13 @@ int ahci_command(volatile struct ahci_abar *abar, int port, int write, int atapi
     hdr->command_table_low = (uint32_t) tbl;
     abar->ports[port].interrupt_status = 0xffffffff;
     // Wait, issue, check
-    while (abar->ports[port].task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ));
+    while (abar->ports[port].task_file_data & (AHCI_PORT_TFD_STS_BSY | AHCI_PORT_TFD_STS_DRQ)) {
+        pause();
+    }
     abar->ports[port].command_issue |= (1 << slot);
-    while (abar->ports[port].command_issue & (1 << slot));
+    while (abar->ports[port].command_issue & (1 << slot)) {
+        pause();
+    }
     if (abar->ports[port].interrupt_status & (1 << 30)) {
         return -1;
     } else {
