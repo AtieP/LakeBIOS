@@ -38,6 +38,12 @@ void pic_disable_irq(uint8_t irq) {
         print("PIC: IRQ out of bounds (%d)", irq);
         return;
     }
+    if (irq > 7) {
+        irq -= 8;
+        outb(PIC_SLAVE_DATA, inb(PIC_SLAVE_DATA) | (1 << irq));
+    } else {
+        outb(PIC_MASTER_DATA, inb(PIC_MASTER_DATA) | (1 << irq));
+    }
 }
 
 void pic_set_level(uint8_t irq) {
