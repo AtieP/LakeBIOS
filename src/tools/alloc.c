@@ -1,11 +1,9 @@
 #include <stdint.h>
-#include <drivers/rtc.h>
 #include <tools/alloc.h>
 #include <tools/print.h>
 #include <tools/string.h>
 
 #define OBJECT_SIZE 32
-#define HEAP_SIZE (16384 * 4)
 
 // Simple bitmap allocator, object size is 32 bytes
 #define BIT_SET(__bit) (bitmap[(__bit) / 8] |= (1 << ((__bit) % 8)))
@@ -15,14 +13,14 @@
 static uint8_t bitmap[HEAP_SIZE / OBJECT_SIZE / 8] = {0};
 static uintptr_t alloc_base;
 
-void alloc_setup() {
+void alloc_setup(uintptr_t base) {
     // Reserve 64KB from low memory
-    alloc_base = rtc_get_low_mem() - HEAP_SIZE;
+    alloc_base = base;
 }
 
 void *malloc(size_t size, size_t alignment) {
     if (!size) {
-        print("lakebios: tried to allocate a zone with a 0 size, ignoring");
+        print("alloc: tried to allocate a zone with a 0 size, ignoring");
         return NULL;
     }
     // Round size to 32
@@ -84,9 +82,13 @@ void *calloc(size_t size, size_t alignment) {
 }
 
 void free(void *base, size_t size) {
+    if (!base) {
+        print("alloc: SEVERE WARNING: trying to free a NULL pointer!!!");
+        return;
+    }
     uintptr_t base_int = (uintptr_t) base;
     if (!size) {
-        print("lakebios: tried to free a zone with 0 size, ignoring");
+        print("alloc: tried to free a zone with 0 size, ignoring");
         return;
     }
     if (size % 32) {

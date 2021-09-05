@@ -1,8 +1,8 @@
 #ifndef __HAL_POWER_H__
 #define __HAL_POWER_H__
 
-#define HAL_POWER_I440FX 1
-#define HAL_POWER_Q35    2
+#define HAL_POWER_QEMU_I440FX_PIIX 1
+#define HAL_POWER_QEMU_Q35_ICH9    2
 
 struct power_abstract {
     int present;

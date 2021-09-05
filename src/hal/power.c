@@ -6,10 +6,10 @@ static struct power_abstract power_module = {0};
 
 static const char *power_module_type_to_name(int interface) {
     switch (interface) {
-        case HAL_POWER_I440FX:
-            return "i440fx Power Management module";
-        case HAL_POWER_Q35:
-            return "Q35 Power Management module";
+        case HAL_POWER_QEMU_I440FX_PIIX:
+            return "QEMU I440FX-PIIX Power Management module";
+        case HAL_POWER_QEMU_Q35_ICH9:
+            return "QEMU Q35-ICH9 Power Management module";
         default:
             return "Unknown Power Management module";
     }

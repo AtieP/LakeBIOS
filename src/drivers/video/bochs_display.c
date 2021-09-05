@@ -1,6 +1,7 @@
+#include <stddef.h>
+#include <drivers/bus/pci.h>
 #include <drivers/video/bochs_display.h>
 #include <drivers/video/vga_regs.h>
-#include <drivers/pci.h>
 #include <hal/display.h>
 #include <tools/print.h>
 #include <tools/string.h>
@@ -10,97 +11,97 @@
 
 /* Read/Write from BAR2 */
 
-static inline uint8_t reg_read8(volatile uint8_t *bar2, size_t offset) {
+static inline uint8_t reg_read_byte(volatile uint8_t *bar2, size_t offset) {
     return *(bar2 + offset);
 }
 
-static inline void reg_write8(volatile uint8_t *bar2, size_t offset, uint8_t value) {
+static inline void reg_write_byte(volatile uint8_t *bar2, size_t offset, uint8_t value) {
     *(bar2 + offset) = value;
 }
 
-static inline uint16_t reg_read16(volatile uint8_t *bar2, size_t offset) {
+static inline uint16_t reg_read_word(volatile uint8_t *bar2, size_t offset) {
     return *((uint16_t *) (bar2 + offset));
 }
 
-static inline void reg_write16(volatile uint8_t *bar2, size_t offset, uint16_t value) {
+static inline void reg_write_word(volatile uint8_t *bar2, size_t offset, uint16_t value) {
     *((uint16_t *) (bar2 + offset)) = value;
 }
 
 /* Read/Write from VGA registers */
 
 static uint8_t gfx_read(volatile uint8_t *bar2, uint8_t index) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_GFX_ADDR), index);
-    return reg_read8(bar2, VGA_REG_OFFSET(VGA_GFX_DATA));
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_GFX_ADDR), index);
+    return reg_read_byte(bar2, VGA_REG_OFFSET(VGA_GFX_DATA));
 }
 
 static void gfx_write(volatile uint8_t *bar2, uint8_t index, uint8_t value) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_GFX_ADDR), index);
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_GFX_DATA), value);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_GFX_ADDR), index);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_GFX_DATA), value);
 }
 
 static uint8_t seq_read(volatile uint8_t *bar2, uint8_t index) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_SEQ_ADDR), index);
-    return reg_read8(bar2, VGA_REG_OFFSET(VGA_SEQ_DATA));
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_SEQ_ADDR), index);
+    return reg_read_byte(bar2, VGA_REG_OFFSET(VGA_SEQ_DATA));
 }
 
 static void seq_write(volatile uint8_t *bar2, uint8_t index, uint8_t data) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_SEQ_ADDR), index);
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_SEQ_DATA), data);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_SEQ_ADDR), index);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_SEQ_DATA), data);
 }
 
 static uint8_t crtc_read(volatile uint8_t *bar2, uint8_t index) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_CRTC_ADDR), index);
-    return reg_read8(bar2, VGA_REG_OFFSET(VGA_CRTC_DATA));
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_CRTC_ADDR), index);
+    return reg_read_byte(bar2, VGA_REG_OFFSET(VGA_CRTC_DATA));
 }
 
 static void crtc_write(volatile uint8_t *bar2, uint8_t index, uint8_t value) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_CRTC_ADDR), index);
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_CRTC_DATA), value);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_CRTC_ADDR), index);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_CRTC_DATA), value);
 }
 
 static uint8_t attr_read(volatile uint8_t *bar2, uint8_t index) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), index);
-    return reg_read8(bar2, VGA_REG_OFFSET(VGA_AC_READ));
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), index);
+    return reg_read_byte(bar2, VGA_REG_OFFSET(VGA_AC_READ));
 }
 
 static void attr_write(volatile uint8_t *bar2, uint8_t index, uint8_t value) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), index);
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), value);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), index);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), value);
 }
 
 static uint8_t misc_read(volatile uint8_t *bar2) {
-    return reg_read8(bar2, VGA_REG_OFFSET(VGA_MISC_READ));
+    return reg_read_byte(bar2, VGA_REG_OFFSET(VGA_MISC_READ));
 }
 
 static void misc_write(volatile uint8_t *bar2, uint8_t value) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_MISC_WRITE), value);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_MISC_WRITE), value);
 }
 
 static void dac_write(volatile uint8_t *bar2, uint8_t index, const uint8_t (*values)[3], int len) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_DAC_ADDR_WRITE), index);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_DAC_ADDR_WRITE), index);
     for (int i = 0; i < len; i++) {
         for (int j = 0; j < 3; j++) {
-            reg_write8(bar2, VGA_REG_OFFSET(VGA_DAC_DATA), values[i][j]);
+            reg_write_byte(bar2, VGA_REG_OFFSET(VGA_DAC_DATA), values[i][j]);
         }
     }
 }
 
 static void dac_read(volatile uint8_t *bar2, uint8_t index, uint8_t (*values)[3], int len) {
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_DAC_ADDR_READ), index);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_DAC_ADDR_READ), index);
     for (int i = 0; i < len; i++) {
         for (int j = 0; j < 3; j++) {
-            values[i][j] = reg_read8(bar2, VGA_REG_OFFSET(VGA_DAC_DATA));
+            values[i][j] = reg_read_byte(bar2, VGA_REG_OFFSET(VGA_DAC_DATA));
         }
     }
 }
 
 /* Read/Write from VBE registers */
 static uint16_t vbe_read(volatile uint8_t *bar2, uint8_t index) {
-    return reg_read16(bar2, VBE_REG_OFFSET(index << 1));
+    return reg_read_word(bar2, VBE_REG_OFFSET(index << 1));
 }
 
 static void vbe_write(volatile uint8_t *bar2, uint8_t index, uint16_t value) {
-    reg_write16(bar2, VBE_REG_OFFSET(index << 1), value);
+    reg_write_word(bar2, VBE_REG_OFFSET(index << 1), value);
 }
 
 /* Others */
@@ -149,7 +150,7 @@ static void vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t functi
     seq_write(bar2, VGA_SEQ_CLOCKING, seq_read(bar2, VGA_SEQ_CLOCKING) | (1 << 5));
     seq_write(bar2, VGA_SEQ_MAP_MASK, 0x00);
     misc_write(bar2, misc_read(bar2) & ~(1 << 1));
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), 0x00);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), 0x00);
     struct display_abstract display;
     display.interface = HAL_DISPLAY_VGA_BGA;
     display.specific.bga.bar2 = bar2;
@@ -214,7 +215,7 @@ void bochs_display_vga_regs_write(volatile uint8_t *bar2, struct vga_mode *mode)
     seq_write(bar2, VGA_SEQ_CLOCKING, seq_read(bar2, VGA_SEQ_CLOCKING) | (1 << 5));
     seq_write(bar2, VGA_SEQ_MAP_MASK, 0x00);
     misc_write(bar2, misc_read(bar2) & ~(1 << 1));
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), 0x00);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), 0x00);
     dac_write(bar2, 0, mode->pallete, mode->pallete_entries);
     for (int i = 0; i < mode->attr_len; i++) {
         attr_write(bar2, mode->attr[i][0], mode->attr[i][1]);
@@ -239,7 +240,7 @@ void bochs_display_vga_regs_write(volatile uint8_t *bar2, struct vga_mode *mode)
     crtc_write(bar2, VGA_CRTC_VERTICAL_RETRACE_END, crtc_read(bar2, VGA_CRTC_VERTICAL_RETRACE_END) | (1 << 7));
     misc_write(bar2, mode->misc);
     // Enable display
-    reg_write8(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), 0x20);
+    reg_write_byte(bar2, VGA_REG_OFFSET(VGA_AC_ADDR), 0x20);
 }
 
 void bochs_display_vga_font_write(volatile uint8_t *bar2, const void *font, int height) {

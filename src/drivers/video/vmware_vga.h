@@ -1,6 +1,8 @@
 #ifndef __DRIVERS_VIDEO_VMWARE_VGA_H__
 #define __DRIVERS_VIDEO_VMWARE_VGA_H__
 
+#include <stdint.h>
+
 #define VMWARE_VGA_VENDOR 0x15ad
 #define VMWARE_VGA_DEVICE 0x0405
 

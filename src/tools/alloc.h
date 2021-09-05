@@ -3,7 +3,9 @@
 
 #include <stddef.h>
 
-void alloc_setup();
+#define HEAP_SIZE (16384 * 4)
+
+void alloc_setup(uintptr_t base);
 void *malloc(size_t size, size_t alignment);
 void *realloc(void *old, size_t oldsize, size_t newsize, size_t alignment);
 void *calloc(size_t size, size_t alignment);

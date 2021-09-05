@@ -1,8 +1,8 @@
 # lakebios
-Firmware for I440FX and Q35. Meant to be ran in emulators, specially QEMU.
+x86 firmware.
 
 # Features
-- Basic chipset initialization (QEMU i440fx and QEMU Q35 supported) 
+- Basic chipset initialization (QEMU I440FX-PIIX and QEMU Q35-ICH9 supported) 
 - Device set up (PCI, PCI bridges, disk controllers, displays...) 
 - Clean HAL with modularization
 - A WIP Legacy BIOS frontend and possibly EFI boot/runtime service support

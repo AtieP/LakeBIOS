@@ -1,10 +1,6 @@
 #include <hal/display.h>
-#include <drivers/video/bochs_display.h>
-#include <drivers/video/vga_modes.h>
-#include <drivers/video/vmware_vga.h>
-#include <paravirt/qemu.h>
-#include <tools/string.h>
 #include <tools/print.h>
+#include <tools/string.h>
 
 // https://chrishewett.com/blog/true-rgb565-colour-picker/ :D
 

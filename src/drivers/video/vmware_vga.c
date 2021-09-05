@@ -1,7 +1,7 @@
-#include <stdint.h>
+#include <stddef.h>
 #include <cpu/pio.h>
+#include <drivers/bus/pci.h>
 #include <drivers/video/vmware_vga.h>
-#include <drivers/pci.h>
 #include <hal/display.h>
 #include <tools/print.h>
 
@@ -70,7 +70,6 @@ static void controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
 }
 
 void vmware_vga_init() {
-    // There can be only 1 VMWare VGA device, and it is always VGA compatible
     print("VMWare VGA: Initializing controller");
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t bus;
@@ -87,7 +86,7 @@ void vmware_vga_init() {
             break;
         }
     }
-    print("VMWare VGA: Finished initializing controller");
+    print("VMWare VGA: Finished initializing controllers");
 }
 
 /* Exposes functions */

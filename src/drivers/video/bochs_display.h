@@ -1,6 +1,7 @@
-#ifndef __DRIVERS_VIDEO_VGA_BOCHS_H__
-#define __DRIVERS_VIDEO_VGA_BOCHS_H__
+#ifndef __DRIVERS_VIDEO_BOCHS_DISPLAY_H__
+#define __DRIVERS_VIDEO_BOCHS_DISPLAY_H__
 
+#include <stdint.h>
 #include <drivers/video/vga_modes.h>
 
 #define BOCHS_DISPLAY_VENDOR 0x1234

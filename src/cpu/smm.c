@@ -2,7 +2,6 @@
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <tools/print.h>
-#include <tools/string.h>
 
 __attribute__((__section__(".smm_stack"), __used__))
 static uint8_t smm_stack[4096] = {0};

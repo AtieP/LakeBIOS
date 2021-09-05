@@ -2,8 +2,6 @@
 #define __HAL_DISK_H__
 
 #include <stdint.h>
-#include <drivers/ahci.h>
-#include <drivers/nvme.h>
 
 #define HAL_DISK_AHCI 0x01
 #define HAL_DISK_NVME 0x02
