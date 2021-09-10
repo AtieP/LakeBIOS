@@ -44,7 +44,8 @@
 #define QEMU_Q35_DRAM_ESMRAMC_TSEG_2M 0x01
 #define QEMU_Q35_DRAM_ESMRAMC_TSEG_8M 0x02
 
-int qemu_q35_dram_tseg_size();
+int qemu_q35_dram_tseg_get_size();
+int qemu_q35_dram_tseg_set_size(int mbs);
 
 void qemu_q35_dram_pciexbar(uint64_t pciexbar, int size_mb);
 

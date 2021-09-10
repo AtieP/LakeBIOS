@@ -27,11 +27,8 @@ static inline void dram_write_dword(uint8_t offset, uint32_t value) {
 
 /* TSEG */
 
-int qemu_q35_dram_tseg_size() {
+int qemu_q35_dram_tseg_get_size() {
     uint8_t esmramc = dram_read_byte(QEMU_Q35_DRAM_ESMRAMC);
-    if (!(esmramc & QEMU_Q35_DRAM_ESMRAMC_EN)) {
-        return 0;
-    }
     uint8_t esmramc_tseg_size = esmramc & 0x03;
     if (esmramc_tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_1M) {
         return 1 * 1024 * 1024;
@@ -43,6 +40,21 @@ int qemu_q35_dram_tseg_size() {
         dram_write_word(QEMU_Q35_DRAM_EXT_TSEG_MBYTES, QEMU_Q35_DRAM_EXT_TSEG_MBYTES_QUERY);
         return (int) dram_read_word(QEMU_Q35_DRAM_EXT_TSEG_MBYTES) * 1024 * 1024;
     }
+}
+
+int qemu_q35_dram_tseg_set_size(int mbs) {
+    if (mbs == 1) {
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~0x03) | QEMU_Q35_DRAM_ESMRAMC_TSEG_1M);
+    } else if (mbs == 2) {
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~0x03) | QEMU_Q35_DRAM_ESMRAMC_TSEG_2M);
+    } else if (mbs == 8) {
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~0x03) | QEMU_Q35_DRAM_ESMRAMC_TSEG_8M);
+    } else if (mbs < 4096) {
+        dram_write_dword(QEMU_Q35_DRAM_EXT_TSEG_MBYTES, mbs);
+    } else {
+        return -1;
+    }
+    return 0;
 }
 
 /* PCIEXBAR */
