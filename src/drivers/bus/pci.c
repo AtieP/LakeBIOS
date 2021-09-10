@@ -1,14 +1,12 @@
 #include <cpu/pio.h>
 #include <drivers/bus/pci.h>
 #include <tools/print.h>
+#include <tools/string.h>
 
 /* Global variables */
-static uintptr_t mem_base;
-static uintptr_t mem_limit;
-static uint16_t io_base;
-static uint16_t io_limit;
-static uintptr_t pref_base;
-static uintptr_t pref_limit;
+static struct pci_bar_window *mem_bar_window;
+static struct pci_bar_window *io_bar_window;
+static struct pci_bar_window *pref_bar_window;
 
 static uint8_t (*get_interrupt_line)(int pin, uint8_t bus, uint8_t slot, uint8_t function);
 static int buses = 1;
@@ -72,41 +70,69 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     if (!bar_size) {
         return -1;
     }
+allocate_io:
     if (type == PCI_BAR_IO) {
-        uint64_t temp_io_base = io_base;
+        uint64_t temp_io_base = io_bar_window->base;
         temp_io_base = (temp_io_base + (bar_size - 1)) & ~(bar_size - 1);
-        if (temp_io_base + bar_size > (uint64_t) io_limit) {
-            print("PCI: Cannot allocate IO BAR #%d of Bus %d Slot %d Function %d because there isn't enough space", bar, bus, slot, function);
-            return type;
+        if (temp_io_base + bar_size > io_bar_window->limit) {
+            if (io_bar_window->next) {
+                io_bar_window = io_bar_window->next;
+                goto allocate_io;
+            }
+            print("PCI: Cannot allocate IO BAR #%d of Bus %d Slot %d Function %d because there isn't any space left on any IO window", bar, bus, slot, function);
+            print("Halting");
+            for (;;) {}
         }
         pci_cfg_write_dword(bus, slot, function, offset, temp_io_base);
-        io_base = temp_io_base + bar_size;
+        io_bar_window->base = temp_io_base + bar_size;
     }
+allocate_mem:
     if (type == PCI_BAR_MEM_32 || type == PCI_BAR_MEM_64) {
-        uint64_t temp_mem_base = (uint64_t) mem_base;
+        uint64_t temp_mem_base = mem_bar_window->base;
         temp_mem_base = (temp_mem_base + (bar_size - 1)) & ~(bar_size - 1);
-        if (temp_mem_base + bar_size > (uint64_t) mem_limit) {
-            print("PCI: Cannot allocate Memory BAR #%d of Bus %d Slot %d Function %d because there isn't enough space", bar, bus, slot, function);
-            return type;
+        if (temp_mem_base + bar_size > mem_bar_window->limit) {
+            if (mem_bar_window->next) {
+                mem_bar_window = mem_bar_window->next;
+                goto allocate_mem;
+            }
+            print("PCI: Cannot allocate Memory BAR #%d of Bus %d Slot %d Function %d because there isn't any space left on any Memory window", bar, bus, slot, function);
+            print("Halting");
+            for (;;) {}
         }
         pci_cfg_write_dword(bus, slot, function, offset, temp_mem_base);
-        if (type == PCI_BAR_MEM_64) {
-            pci_cfg_write_dword(bus, slot, function, offset + 4, 0);
+        if ((temp_mem_base & ((uint64_t) 1 << 32)) && type == PCI_BAR_PREF_32) {
+            print("PCI: Cannot allocate Memory BAR #%d of Bus %d Slot %d Function %d because it's 32 bit and the window is above 4GB", bar, bus, slot, function);
+            print("Halting");
+            for (;;) {}
         }
-        mem_base = temp_mem_base + bar_size;
+        if (type == PCI_BAR_MEM_64) {
+            pci_cfg_write_dword(bus, slot, function, offset + 4, (uint32_t) (temp_mem_base >> 32));
+        }
+        mem_bar_window->base = temp_mem_base + bar_size;
     }
-    if (type == PCI_BAR_PREF_32 || type == PCI_BAR_PREF_64){
-        uint64_t temp_pref_base = (uint64_t) pref_base;
+allocate_pref:
+    if (type == PCI_BAR_PREF_32 || type == PCI_BAR_PREF_64) {
+        uint64_t temp_pref_base = pref_bar_window->base;
         temp_pref_base = (temp_pref_base + (bar_size - 1)) & ~(bar_size - 1);
-        if (temp_pref_base + bar_size > (uint64_t) pref_limit) {
-            print("PCI: Cannot allocate Prefetchable BAR #%d of Bus %d Slot %d Function %d because there isn't enough space", bar, bus, slot, function);
-            return type;
+        if (temp_pref_base + bar_size > pref_bar_window->limit) {
+            if (pref_bar_window->next) {
+                pref_bar_window = pref_bar_window->next;
+                goto allocate_pref;
+            }
+            print("PCI: Cannot allocate Prefetchable BAR #%d of Bus %d Slot %d Function %d because there isn't any space left on any Prefetchable window", bar, bus, slot, function);
+            print("Halting");
+            for (;;) {}
         }
         pci_cfg_write_dword(bus, slot, function, offset, temp_pref_base);
-        if (type == PCI_BAR_PREF_64) {
-            pci_cfg_write_dword(bus, slot, function, offset + 4, 0);
+        if ((temp_pref_base & ((uint64_t) 1 << 32)) && type == PCI_BAR_PREF_32) {
+            print("PCI: Cannot allocate Prefetchable BAR #%d of Bus %d Slot %d Function %d because it's 32 bit and the window is above 4GB", bar, bus, slot, function);
+            print("Halting");
+            for (;;) {}
         }
-        pref_base = temp_pref_base + bar_size;
+        if (type == PCI_BAR_PREF_64) {
+            pci_cfg_write_dword(bus, slot, function, offset + 4, (uint32_t) (temp_pref_base >> 32));
+        }
+        pref_bar_window->base = temp_pref_base + bar_size;
     }
     return type;
 }
@@ -150,17 +176,17 @@ static void setup_pci_bridge(uint8_t bus, uint8_t slot, uint8_t function, int *f
     }
     // Align memory, IO and prefetchable bases
     if (io_implemented) {
-        io_base = (io_base + 0x0fff) & ~0x0fff;
+        io_bar_window->base = (io_bar_window->base + 0x0fff) & ~0x0fff;
     }
     if (mem_implemented) {
-        mem_base = (mem_base + 0xffffe) & ~0xffffe;
+        mem_bar_window->base = (mem_bar_window->base + 0xffffe) & ~0xffffe;
     }
     if (pref_implemented) {
-        pref_base = (pref_base + 0xffffe) & ~0xffffe;
+        pref_bar_window->base = (pref_bar_window->base + 0xffffe) & ~0xffffe;
     }
-    uintptr_t orig_mem_base = mem_base;
-    uint16_t orig_io_base = io_base;
-    uintptr_t orig_pref_base = pref_base;
+    uintptr_t orig_mem_base = mem_bar_window->base;
+    uint16_t orig_io_base = io_bar_window->base;
+    uintptr_t orig_pref_base = pref_bar_window->base;
     // Assign bus numbers
     int new_bus = allocate_bus();
     pci_cfg_write_byte(bus, slot, function, PCI_CFG_PRIMARY_BUS, bus);
@@ -170,25 +196,25 @@ static void setup_pci_bridge(uint8_t bus, uint8_t slot, uint8_t function, int *f
     // Tell the bridge what ranges it can use
     if (io_implemented) {
         pci_cfg_write_byte(bus, slot, function, PCI_CFG_IO_BASE, (orig_io_base >> 11) << 3);
-        pci_cfg_write_byte(bus, slot, function, PCI_CFG_IO_LIMIT, (io_base >> 11) << 3);
+        pci_cfg_write_byte(bus, slot, function, PCI_CFG_IO_LIMIT, (io_bar_window->base >> 11) << 3);
         pci_cfg_write_word(bus, slot, function, PCI_CFG_IO_BASE_HI, 0);
         pci_cfg_write_word(bus, slot, function, PCI_CFG_IO_LIMIT_HI, 0);
-        io_base++;
-        io_base = (io_base + 0x0fff) & ~0x0fff;
+        io_bar_window->base++;
+        io_bar_window->base = (io_bar_window->base + 0x0fff) & ~0x0fff;
     }
     if (mem_implemented) {
         pci_cfg_write_word(bus, slot, function, PCI_CFG_MEMORY_BASE, (orig_mem_base >> 19) << 3);
-        pci_cfg_write_word(bus, slot, function, PCI_CFG_MEMORY_LIMIT, (mem_base >> 19) << 3);
-        mem_base++;
-        mem_base = (mem_base + 0xffffe) & ~0xffffe;
+        pci_cfg_write_word(bus, slot, function, PCI_CFG_MEMORY_LIMIT, (mem_bar_window->base >> 19) << 3);
+        mem_bar_window->base++;
+        mem_bar_window->base = (mem_bar_window->base + 0xffffe) & ~0xffffe;
     }
     if (pref_implemented) {
         pci_cfg_write_word(bus, slot, function, PCI_CFG_PREFETCH_BASE, (orig_pref_base >> 19) << 3);
-        pci_cfg_write_word(bus, slot, function, PCI_CFG_PREFETCH_LIMIT, (pref_base >> 19) << 3);
+        pci_cfg_write_word(bus, slot, function, PCI_CFG_PREFETCH_LIMIT, (pref_bar_window->base >> 19) << 3);
         pci_cfg_write_dword(bus, slot, function, PCI_CFG_PREFETCH_BASE_HI, 0);
         pci_cfg_write_dword(bus, slot, function, PCI_CFG_PREFETCH_LIMIT_HI, 0);
-        pref_base++;
-        pref_base = (pref_base + 0xffffe) & ~0xffffe;
+        pref_bar_window->base++;
+        pref_bar_window->base = (pref_bar_window->base + 0xffffe) & ~0xffffe;
     }
     *found_buses = *found_buses + 1;
 }
@@ -275,17 +301,14 @@ void pci_control_clear(uint8_t bus, uint8_t slot, uint8_t function, uint16_t bit
     pci_cfg_write_word(bus, slot, function, PCI_CFG_COMMAND, pci_cfg_read_word(bus, slot, function, PCI_CFG_COMMAND) & ~bits);
 }
 
-int pci_setup(uintptr_t mem_base_, uintptr_t mem_limit_, uint16_t io_base_, uint16_t io_limit_, uintptr_t pref_base_, uintptr_t pref_limit_, uint8_t (*get_interrupt_line_)(int pin, uint8_t bus, uint8_t slot, uint8_t function)) {
+int pci_setup(struct pci_bar_window *mem_window, struct pci_bar_window *io_window, struct pci_bar_window *pref_window,  uint8_t (*get_interrupt_line_)(int pin, uint8_t bus, uint8_t slot, uint8_t function)) {
     if (!pci_exists()) {
         print("PCI: Not available");
         return -1;
     }
-    mem_base = mem_base_;
-    io_base = io_base_;
-    pref_base = pref_base_;
-    mem_limit = mem_limit_;
-    io_limit = io_limit_;
-    pref_limit = pref_limit_;
+    mem_bar_window = mem_window;
+    io_bar_window = io_window;
+    pref_bar_window = pref_window;
     get_interrupt_line = get_interrupt_line_;
     setup_bus(0);
     return 0;

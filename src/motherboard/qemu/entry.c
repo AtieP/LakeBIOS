@@ -27,6 +27,12 @@
 extern char smm_trampoline_start[];
 extern char smm_trampoline_end[];
 
+struct pci_bar_window pci_mem_window = {0};
+struct pci_bar_window pci_mem_window_high = {0};
+struct pci_bar_window pci_io_window = {0};
+struct pci_bar_window pci_pref_window = {0};
+struct pci_bar_window pci_pref_window_high = {0};
+
 #ifdef QEMU_I440FX_PIIX
 static void qemu_i440fx_piix_init() {
     print("Not implemented yet. Halting");
@@ -99,13 +105,38 @@ static void qemu_q35_ich9_init() {
     }
     // PCI
     qemu_q35_dram_pciexbar(QEMU_Q35_PCIEXBAR, QEMU_Q35_DRAM_PCIEXBAR_256MB);
-    uint16_t pci_io_base = 0x1000;
-    uint16_t pci_io_size = 0xe800;
-    uint32_t pci_mmio_base = 0x1000000 + (qemu_rtc_ext_ext2_mem_kb() * 1024) + qemu_q35_dram_tseg_get_size();
-    uint32_t pci_mmio_size = (QEMU_Q35_PCIEXBAR - pci_mmio_base) / 2;
-    uint32_t pci_pref_base = pci_mmio_base + pci_mmio_size;
-    uint32_t pci_pref_size = pci_mmio_size;
-    pci_setup(pci_mmio_base, pci_mmio_base + pci_mmio_size, pci_io_base, pci_io_base + pci_io_size, pci_pref_base, pci_pref_base + pci_pref_size, qemu_q35_ich9_get_int_line);
+    // The MMIO windows have two halves for us: the lower one for Memory, and the higher one for Prefetchable
+    uint64_t mem32_base = (uint64_t) 0x1000000 + (qemu_rtc_ext_ext2_mem_kb() * 1024) + qemu_q35_dram_tseg_get_size();
+    uint64_t mem32_limit = mem32_base + ((QEMU_Q35_PCIEXBAR - mem32_base) / 2);
+    uint64_t pref32_base = mem32_limit;
+    uint64_t pref32_limit = QEMU_Q35_PCIEXBAR;
+    uint64_t mem64_base = 0x100000000 + (qemu_rtc_ext_high_mem_kb() * 1024);
+    uint64_t mem64_limit = mem64_base + ((0x1000000000 - mem64_base) / 2);
+    uint64_t pref64_base = mem64_limit;
+    uint64_t pref64_limit = 0x1000000000; // 64GB
+    uint64_t io_base = 0x1000;
+    uint64_t io_size = 0xefff;
+    pci_mem_window.orig_base = mem32_base;
+    pci_mem_window.base = mem32_base;
+    pci_mem_window.limit = mem32_limit;
+    pci_mem_window.next = &pci_mem_window_high;
+    pci_mem_window_high.orig_base = mem64_base;
+    pci_mem_window_high.base = mem64_base;
+    pci_mem_window_high.limit = mem64_limit;
+    pci_mem_window_high.next = NULL;
+    pci_pref_window.orig_base = pref32_base;
+    pci_pref_window.base = pref32_base;
+    pci_pref_window.limit = pref32_limit;
+    pci_pref_window.next = &pci_pref_window_high;
+    pci_pref_window_high.orig_base = pref64_base;
+    pci_pref_window_high.base = pref64_base;
+    pci_pref_window_high.limit = pref64_limit;
+    pci_pref_window_high.next = NULL;
+    pci_io_window.orig_base = io_base;
+    pci_io_window.base = io_base;
+    pci_io_window.limit = io_base + io_size;
+    pci_io_window.next = NULL;
+    pci_setup(&pci_mem_window, &pci_io_window, &pci_pref_window, qemu_q35_ich9_get_int_line);
     // ISA devices
     ps2_init();
     // ACPI

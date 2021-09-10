@@ -49,6 +49,13 @@
 #define PCI_BAR_PREF_32 0x04
 #define PCI_BAR_PREF_64 0x06
 
+struct pci_bar_window {
+    uint64_t orig_base;
+    uint64_t base;
+    uint64_t limit;
+    struct pci_bar_window *next;
+};
+
 uint8_t pci_cfg_read_byte(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset);
 uint16_t pci_cfg_read_word(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset);
 uint32_t pci_cfg_read_dword(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset);
@@ -60,7 +67,7 @@ void pci_cfg_write_dword(uint8_t bus, uint8_t slot, uint8_t function, uint8_t of
 void pci_control_set(uint8_t bus, uint8_t slot, uint8_t function, uint16_t bits);
 void pci_control_clear(uint8_t bus, uint8_t slot, uint8_t function, uint16_t bits);
 
-int pci_setup(uintptr_t mem_base_, uintptr_t mem_limit_, uint16_t io_base_, uint16_t io_limit_, uintptr_t pref_base_, uintptr_t pref_limit_, uint8_t (*get_interrupt_line_)(int pirq, uint8_t bus, uint8_t slot, uint8_t function));
+int pci_setup(struct pci_bar_window *mem_window, struct pci_bar_window *io_window, struct pci_bar_window *pref_window, uint8_t (*get_interrupt_line_)(int pirq, uint8_t bus, uint8_t slot, uint8_t function));
 int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, size_t index);
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar);
 
