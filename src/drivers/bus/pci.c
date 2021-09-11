@@ -100,7 +100,7 @@ allocate_mem:
             for (;;) {}
         }
         pci_cfg_write_dword(bus, slot, function, offset, temp_mem_base);
-        if ((temp_mem_base & ((uint64_t) 1 << 32)) && type == PCI_BAR_PREF_32) {
+        if ((temp_mem_base >> 32) && type == PCI_BAR_PREF_32) {
             print("PCI: Cannot allocate Memory BAR #%d of Bus %d Slot %d Function %d because it's 32 bit and the window is above 4GB", bar, bus, slot, function);
             print("Halting");
             for (;;) {}
@@ -124,7 +124,7 @@ allocate_pref:
             for (;;) {}
         }
         pci_cfg_write_dword(bus, slot, function, offset, temp_pref_base);
-        if ((temp_pref_base & ((uint64_t) 1 << 32)) && type == PCI_BAR_PREF_32) {
+        if ((temp_pref_base >> 32) && type == PCI_BAR_PREF_32) {
             print("PCI: Cannot allocate Prefetchable BAR #%d of Bus %d Slot %d Function %d because it's 32 bit and the window is above 4GB", bar, bus, slot, function);
             print("Halting");
             for (;;) {}
