@@ -85,9 +85,8 @@ static void qemu_q35_ich9_init() {
     qemu_q35_dram_pam_unlock(6);
     memcpy((void *) 0xe0000, (const void *) (0xfffe0000), 0x10000);
     // SMM
-    qemu_q35_dram_esmramc_dis();
-    qemu_q35_dram_tseg_set_size(1);
     qemu_q35_dram_smram_en();
+    qemu_q35_dram_tseg_set_size(0);
     qemu_q35_dram_smram_open();
     memcpy((void *) (0x30000 + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
     memcpy((void *) (0xa0000 + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
@@ -106,7 +105,7 @@ static void qemu_q35_ich9_init() {
     // PCI
     qemu_q35_dram_pciexbar(QEMU_Q35_PCIEXBAR, QEMU_Q35_DRAM_PCIEXBAR_256MB);
     // The MMIO windows have two halves for us: the lower one for Memory, and the higher one for Prefetchable
-    uint64_t mem32_base = (uint64_t) 0x1000000 + (qemu_rtc_ext_ext2_mem_kb() * 1024) + qemu_q35_dram_tseg_get_size();
+    uint64_t mem32_base = (uint64_t) 0x1000000 + (qemu_rtc_ext_ext2_mem_kb() * 1024);
     uint64_t mem32_limit = mem32_base + ((QEMU_Q35_PCIEXBAR - mem32_base) / 2);
     uint64_t pref32_base = mem32_limit;
     uint64_t pref32_limit = QEMU_Q35_PCIEXBAR;

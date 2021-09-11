@@ -26,15 +26,39 @@ static inline void dram_write_dword(uint8_t offset, uint32_t value) {
 }
 
 /* TSEG */
+/*
+    Notes about TSEG:
 
-int qemu_q35_dram_tseg_get_size() {
+    * TSEG is just RAM that is only accessible while being in System Management Mode.
+      The TSEG window is located at the Top of RAM at the 4GB area minus the size of TSEG.
+    
+    * QEMU is able to set custom TSEG sizes via a QEMU specific method.
+    
+      The custom TSEG size which the firmware can optionally set is passed via the command
+      line and then is reported on the EXT_TSEG_MBYTES register (0x50, Word access). To query
+      the size, the value EXT_TSEG_MBYTES_QUERY (0xffff) must be written to the register and then
+      the register has to be read back. The custom size is in megabytes.
+
+      In order to set the custom (extended) TSEG size as the TSEG size, the following three steps must
+      be done:
+
+      - SMRAM must be enabled via the SMRAM register.
+      - TSEG must be enabled via the ESMRAMC register.
+      - The TSEG size on the ESMRAMC register must be set to reserved (0x03).
+*/
+
+int qemu_q35_dram_tseg_get_current_size() {
+    uint8_t smram = dram_read_byte(QEMU_Q35_DRAM_SMRAM);
     uint8_t esmramc = dram_read_byte(QEMU_Q35_DRAM_ESMRAMC);
-    uint8_t esmramc_tseg_size = esmramc & 0x03;
-    if (esmramc_tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_1M) {
+    if (!(smram & QEMU_Q35_DRAM_SMRAM_EN) || !(esmramc & QEMU_Q35_DRAM_ESMRAMC_TSEG_EN)) {
+        return 0;
+    }
+    uint8_t tseg_size = esmramc & QEMU_Q35_DRAM_ESMRAMC_TSEG_MASK;
+    if (tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_1M) {
         return 1 * 1024 * 1024;
-    } else if (esmramc_tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_2M) {
+    } else if (tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_2M) {
         return 2 * 1024 * 1024;
-    } else if (esmramc_tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_8M) {
+    } else if (tseg_size == QEMU_Q35_DRAM_ESMRAMC_TSEG_8M) {
         return 8 * 1024 * 1024;
     } else {
         dram_write_word(QEMU_Q35_DRAM_EXT_TSEG_MBYTES, QEMU_Q35_DRAM_EXT_TSEG_MBYTES_QUERY);
@@ -42,18 +66,32 @@ int qemu_q35_dram_tseg_get_size() {
     }
 }
 
+// Returned in MBs.
+int qemu_q35_dram_tseg_get_extended_size() {
+    dram_write_word(QEMU_Q35_DRAM_EXT_TSEG_MBYTES, QEMU_Q35_DRAM_EXT_TSEG_MBYTES_QUERY);
+    return (int) dram_read_word(QEMU_Q35_DRAM_EXT_TSEG_MBYTES);
+}
+
+// A value of 0 disables TSEG.
 int qemu_q35_dram_tseg_set_size(int mbs) {
-    if (mbs == 1) {
-        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~0x03) | QEMU_Q35_DRAM_ESMRAMC_TSEG_1M);
+    if (mbs == 0) {
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~QEMU_Q35_DRAM_ESMRAMC_TSEG_EN);
+        return 0;
+    } else if (mbs == 1) {
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~QEMU_Q35_DRAM_ESMRAMC_TSEG_MASK) | QEMU_Q35_DRAM_ESMRAMC_TSEG_1M);
     } else if (mbs == 2) {
-        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~0x03) | QEMU_Q35_DRAM_ESMRAMC_TSEG_2M);
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~QEMU_Q35_DRAM_ESMRAMC_TSEG_MASK) | QEMU_Q35_DRAM_ESMRAMC_TSEG_2M);
     } else if (mbs == 8) {
-        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~0x03) | QEMU_Q35_DRAM_ESMRAMC_TSEG_8M);
-    } else if (mbs < 4096) {
-        dram_write_dword(QEMU_Q35_DRAM_EXT_TSEG_MBYTES, mbs);
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~QEMU_Q35_DRAM_ESMRAMC_TSEG_MASK) | QEMU_Q35_DRAM_ESMRAMC_TSEG_8M);
+    } else if (mbs < QEMU_Q35_DRAM_EXT_TSEG_MBYTES_MAX) {
+        if (mbs != qemu_q35_dram_tseg_get_extended_size()) {
+            return -1;
+        }
+        dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, (dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) & ~QEMU_Q35_DRAM_ESMRAMC_TSEG_MASK) | QEMU_Q35_DRAM_ESMRAMC_TSEG_EXT);
     } else {
         return -1;
     }
+    dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) | QEMU_Q35_DRAM_ESMRAMC_TSEG_EN);
     return 0;
 }
 
@@ -75,7 +113,7 @@ void qemu_q35_dram_pam_unlock(int pam) {
     dram_write_byte(QEMU_Q35_DRAM_PAM0 + pam, (QEMU_Q35_DRAM_PAM0_EN << 4) | (pam != 0 ? QEMU_Q35_DRAM_PAM0_EN : 0x00));
 }
 
-/* Legacy SMRAM control */
+/* SMRAM control */
 
 void qemu_q35_dram_smram_en() {
     dram_write_byte(QEMU_Q35_DRAM_SMRAM, dram_read_byte(QEMU_Q35_DRAM_SMRAM) | QEMU_Q35_DRAM_SMRAM_EN);
@@ -103,10 +141,10 @@ void qemu_q35_dram_smram_lock() {
 
 /* Extended SMRAM Control */
 
-void qemu_q35_dram_esmramc_en() {
-    dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, QEMU_Q35_DRAM_ESMRAMC_EN);
+void qemu_q35_dram_esmramc_hi_smram_en() {
+    dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) | QEMU_Q35_DRAM_ESMRAMC_HI_SMRAM_EN);
 }
 
-void qemu_q35_dram_esmramc_dis() {
-    dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, 0x00);
+void qemu_q35_dram_esmramc_hi_smram_dis() {
+    dram_write_byte(QEMU_Q35_DRAM_ESMRAMC, dram_read_byte(QEMU_Q35_DRAM_ESMRAMC) &~ QEMU_Q35_DRAM_ESMRAMC_HI_SMRAM_EN);
 }

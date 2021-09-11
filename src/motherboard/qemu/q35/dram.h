@@ -15,6 +15,7 @@
 // Extended TSEG (QEMU specific)
 #define QEMU_Q35_DRAM_EXT_TSEG_MBYTES       0x50
 #define QEMU_Q35_DRAM_EXT_TSEG_MBYTES_QUERY 0xffff
+#define QEMU_Q35_DRAM_EXT_TSEG_MBYTES_MAX   0xfff
 
 #define QEMU_Q35_DRAM_PCIEXBAR       0x60
 #define QEMU_Q35_DRAM_PCIEXBAR_EN    (1 << 0)
@@ -38,13 +39,17 @@
 #define QEMU_Q35_DRAM_SMRAM_LOCK  (1 << 4)
 #define QEMU_Q35_DRAM_SMRAM_EN    (1 << 3)
 
-#define QEMU_Q35_DRAM_ESMRAMC         0x9e
-#define QEMU_Q35_DRAM_ESMRAMC_EN      (1 << 7)
-#define QEMU_Q35_DRAM_ESMRAMC_TSEG_1M 0x00
-#define QEMU_Q35_DRAM_ESMRAMC_TSEG_2M 0x01
-#define QEMU_Q35_DRAM_ESMRAMC_TSEG_8M 0x02
+#define QEMU_Q35_DRAM_ESMRAMC              0x9e
+#define QEMU_Q35_DRAM_ESMRAMC_HI_SMRAM_EN (1 << 7)
+#define QEMU_Q35_DRAM_ESMRAMC_TSEG_1M      0x00
+#define QEMU_Q35_DRAM_ESMRAMC_TSEG_2M      0x02
+#define QEMU_Q35_DRAM_ESMRAMC_TSEG_8M      0x04
+#define QEMU_Q35_DRAM_ESMRAMC_TSEG_EN      0x01
+#define QEMU_Q35_DRAM_ESMRAMC_TSEG_EXT     0x06
+#define QEMU_Q35_DRAM_ESMRAMC_TSEG_MASK    0x06
 
-int qemu_q35_dram_tseg_get_size();
+int qemu_q35_dram_tseg_get_current_size();
+int qemu_q35_dram_tseg_get_extended_size();
 int qemu_q35_dram_tseg_set_size(int mbs);
 
 void qemu_q35_dram_pciexbar(uint64_t pciexbar, int size_mb);
@@ -59,7 +64,7 @@ void qemu_q35_dram_smram_close();
 void qemu_q35_dram_smram_close_close();
 void qemu_q35_dram_smram_lock();
 
-void qemu_q35_dram_esmramc_en();
-void qemu_q35_dram_esmramc_dis();
+void qemu_q35_dram_esmramc_hi_smram_en();
+void qemu_q35_dram_esmramc_hi_smram_dis();
 
 #endif
