@@ -5,8 +5,12 @@
 #include <drivers/hid/ps2.h>
 #include <drivers/irqs/pic.h>
 #include <motherboard/qemu/rtc_ext.h>
+#include <motherboard/qemu/i440fx/pmc.h>
 #include <motherboard/qemu/ich9/acpi.h>
 #include <motherboard/qemu/ich9/lpc.h>
+#include <motherboard/qemu/piix3/pci_isa.h>
+#include <motherboard/qemu/piix4/acpi.h>
+#include <motherboard/qemu/piix4/pm.h>
 #include <motherboard/qemu/q35/dram.h>
 #include <hal/power.h>
 #include <tools/alloc.h>
@@ -24,6 +28,7 @@
 #include <drivers/video/romfont.h>
 #include <hal/display.h>
 
+// Global variables
 extern char smm_trampoline_start[];
 extern char smm_trampoline_end[];
 
@@ -34,9 +39,113 @@ struct pci_bar_window pci_pref_window = {0};
 struct pci_bar_window pci_pref_window_high = {0};
 
 #ifdef QEMU_I440FX_PIIX
+
+static int qemu_i440fx_piix_reset(struct power_abstract *power_abstract) {
+    (void) power_abstract;
+    uint8_t cf9 = inb(0xcf9) & ~0x0e;
+    outb(0xcf9, cf9 | 0x02);
+    udelay(50);
+    outb(0xcf9, cf9 | 0x0e);
+    udelay(50);
+    return 0;
+}
+
+static int qemu_i440fx_piix_hal_power_s3(struct power_abstract *power_abstract) {
+    (void) power_abstract;
+    return qemu_ich9_acpi_pm1a_cnt_slp(3);
+}
+
+static int qemu_i440fx_piix_hal_power_s4(struct power_abstract *power_abstract) {
+    (void) power_abstract;
+    return qemu_ich9_acpi_pm1a_cnt_slp(4);
+}
+
+static int qemu_i440fx_piix_hal_power_s5(struct power_abstract *power_abstract) {
+    (void) power_abstract;
+    return qemu_ich9_acpi_pm1a_cnt_slp(5);
+}
+
+static uint8_t qemu_i440fx_piix_get_int_line(int pin, uint8_t bus, uint8_t slot, uint8_t function) {
+    if (pin == 0x01 && bus == 0 && slot == 1 && function == 3) {
+        return 9; // SCI
+    }
+    return qemu_piix3_pci_isa_pirq_map[(slot - 1) & 3];
+}
+
 static void qemu_i440fx_piix_init() {
-    print("Not implemented yet. Halting");
-    for (;;) {}
+    // Memory
+    qemu_i440fx_pmc_pam_unlock(5);
+    qemu_i440fx_pmc_pam_unlock(6);
+    memcpy((void *) 0xe0000, (const void *) 0xfffe0000, 0x10000);
+    // SMM
+    qemu_i440fx_pmc_smram_open();
+    memcpy((void *) (0x30000 + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
+    memcpy((void *) (0xa0000 + SMM_SMBASE_HANDLER_OFFSET), smm_trampoline_start, smm_trampoline_end - smm_trampoline_start);
+    qemu_piix4_pm_pmba_set(QEMU_PIIX4_ACPI_PMBASE);
+    qemu_piix4_pm_pmregmisc_pmba_en();
+    qemu_piix4_pm_devacta_set(QEMU_PIIX4_PM_APMC_EN);
+    outb(0xb2, 0x01);
+    qemu_i440fx_pmc_smram_close();
+    qemu_i440fx_pmc_smram_lock();
+    // Interrupts
+    pic_init(0x08, 0x70);
+    for (int i = 0; i < 4; i++) {
+        qemu_piix3_pci_isa_pirq_route(i, qemu_piix3_pci_isa_pirq_map[i]);
+        qemu_piix3_pci_isa_pirq_en(i);
+    }
+    // PCI
+    // The MMIO windows have two halves for us: the lower one for Memory, and the higher one for Prefetchable
+    uint64_t mem32_base = (uint64_t) 0x1000000 + ((uint64_t) qemu_rtc_ext_ext2_mem_kb() * 1024);
+    uint64_t mem32_limit = mem32_base + ((0xfec00000 - mem32_base) / 2);
+    uint64_t pref32_base = mem32_limit;
+    uint64_t pref32_limit = 0xfec00000;
+    uint64_t mem64_base = 0x100000000 + ((uint64_t) qemu_rtc_ext_high_mem_kb() * 1024);
+    uint64_t mem64_limit = mem64_base + ((0x1000000000 - mem64_base) / 2);
+    uint64_t pref64_base = mem64_limit;
+    uint64_t pref64_limit = 0x1000000000; // 64GB
+    uint64_t io_base = 0x1000;
+    uint64_t io_size = 0xefff;
+    pci_mem_window.orig_base = mem32_base;
+    pci_mem_window.base = mem32_base;
+    pci_mem_window.limit = mem32_limit;
+    pci_mem_window.next = &pci_mem_window_high;
+    pci_mem_window_high.orig_base = mem64_base;
+    pci_mem_window_high.base = mem64_base;
+    pci_mem_window_high.limit = mem64_limit;
+    pci_mem_window_high.next = NULL;
+    pci_pref_window.orig_base = pref32_base;
+    pci_pref_window.base = pref32_base;
+    pci_pref_window.limit = pref32_limit;
+    pci_pref_window.next = &pci_pref_window_high;
+    pci_pref_window_high.orig_base = pref64_base;
+    pci_pref_window_high.base = pref64_base;
+    pci_pref_window_high.limit = pref64_limit;
+    pci_pref_window_high.next = NULL;
+    pci_io_window.orig_base = io_base;
+    pci_io_window.base = io_base;
+    pci_io_window.limit = io_base + io_size;
+    pci_io_window.next = NULL;
+    pci_setup(&pci_mem_window, &pci_io_window, &pci_pref_window, qemu_i440fx_piix_get_int_line);
+    // ACPI
+    struct power_abstract power_hal;
+    power_hal.interface = HAL_POWER_QEMU_I440FX_PIIX;
+    power_hal.ops.reset = qemu_i440fx_piix_reset;
+    power_hal.ops.resume = NULL;
+    power_hal.ops.s1 = NULL;
+    power_hal.ops.s2 = NULL;
+    power_hal.ops.s3 = qemu_i440fx_piix_hal_power_s3;
+    power_hal.ops.s4 = qemu_i440fx_piix_hal_power_s4;
+    power_hal.ops.s5 = qemu_i440fx_piix_hal_power_s5;
+    hal_power_submit(&power_hal);
+    // ISA
+    ps2_init();
+    // Others
+    alloc_setup((qemu_rtc_ext_conv_mem_kb() * 1024) - HEAP_SIZE);
+    // PCI devices
+    ahci_init();
+    nvme_init();
+    bochs_display_init();
+    vmware_vga_init();
 }
 #endif
 
@@ -98,18 +207,18 @@ static void qemu_q35_ich9_init() {
     qemu_q35_dram_smram_lock();
     // Interrupts
     pic_init(0x08, 0x70);
-    for (int i = 0; i <= 8; i++) {
+    for (int i = 0; i < 8; i++) {
         qemu_ich9_lpc_pirq_route_pic(i);
         qemu_ich9_lpc_pirq_route(i, qemu_ich9_lpc_pirq_map[i]);
     }
     // PCI
     qemu_q35_dram_pciexbar(QEMU_Q35_PCIEXBAR, QEMU_Q35_DRAM_PCIEXBAR_256MB);
     // The MMIO windows have two halves for us: the lower one for Memory, and the higher one for Prefetchable
-    uint64_t mem32_base = (uint64_t) 0x1000000 + (qemu_rtc_ext_ext2_mem_kb() * 1024);
+    uint64_t mem32_base = (uint64_t) 0x1000000 + ((uint64_t) qemu_rtc_ext_ext2_mem_kb() * 1024);
     uint64_t mem32_limit = mem32_base + ((QEMU_Q35_PCIEXBAR - mem32_base) / 2);
     uint64_t pref32_base = mem32_limit;
     uint64_t pref32_limit = QEMU_Q35_PCIEXBAR;
-    uint64_t mem64_base = 0x100000000 + (qemu_rtc_ext_high_mem_kb() * 1024);
+    uint64_t mem64_base = 0x100000000 + ((uint64_t) qemu_rtc_ext_high_mem_kb() * 1024);
     uint64_t mem64_limit = mem64_base + ((0x1000000000 - mem64_base) / 2);
     uint64_t pref64_base = mem64_limit;
     uint64_t pref64_limit = 0x1000000000; // 64GB
@@ -169,12 +278,19 @@ void qemu_bios_entry() {
         print("Not in QEMU. Halting");
         for (;;) {}
     }
+    // Cold reboot
+    if (rtc_read(CMOS_RESET_STATUS) != 0x00) {
+        rtc_write(CMOS_RESET_STATUS, 0x00);
+        hal_power_reset();
+        for (;;) {}
+    }
+    rtc_write(CMOS_RESET_STATUS, 0x01);
     // Initialize chipset
     uint16_t north_bridge_vendor = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
     uint16_t north_bridge_device = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);
 
 #if defined QEMU_I440FX_PIIX && defined QEMU_Q35_ICH9
-    if (north_bridge_vendor == 0x8086 && north_bridge_device == 0x1237) {
+    if (north_bridge_vendor == QEMU_I440FX_PMC_VENDOR && north_bridge_device == QEMU_I440FX_PMC_DEVICE) {
         print("QEMU I440FX-PIIX machine found, initializing");
         qemu_i440fx_piix_init();
     } else if (north_bridge_vendor == QEMU_Q35_DRAM_VENDOR && north_bridge_device == QEMU_Q35_DRAM_DEVICE) {
@@ -187,7 +303,7 @@ void qemu_bios_entry() {
 #endif
 
 #if defined QEMU_I440FX_PIIX && !defined QEMU_Q35_ICH9
-    if (north_bridge_vendor == 0x8086 && north_bridge_device == 0x1237) {
+    if (north_bridge_vendor == QEMU_I440FX_PMC_VENDOR && north_bridge_device == QEMU_I440FX_PMC_DEVICE) {
         print("QEMU I440FX-PIIX machine found, initializing");
         qemu_i440fx_piix_init();
     } else {

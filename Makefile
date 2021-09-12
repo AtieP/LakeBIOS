@@ -11,7 +11,7 @@ CFLAGS = -m32 -mno-sse -mno-sse2 -mno-mmx -mno-3dnow -mno-80387 -nostdlib -ffree
 ifdef TARGET
 	ifeq ($(TARGET),qemu-i440fx-piix)
 		CFILES += $(shell find src/motherboard/qemu/ -maxdepth 1 -type f -name '*.c')
-		CFILES += $(shell find src/motherboard/qemu/i440fx/ src/motherboard/qemu/piix -type f -name '*.c')
+		CFILES += $(shell find src/motherboard/qemu/i440fx/ src/motherboard/qemu/piix4 src/motherboard/qemu/piix3 -type f -name '*.c')
 		CFLAGS += -D QEMU_I440FX_PIIX
 	else ifeq ($(TARGET),qemu-q35-ich9)
 		CFILES += $(shell find src/motherboard/qemu/ -maxdepth 1 -type f -name '*.c')
