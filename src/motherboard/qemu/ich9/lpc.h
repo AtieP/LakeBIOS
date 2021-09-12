@@ -24,6 +24,7 @@
 #define QEMU_ICH9_LPC_PIRQA_ROUT 0x60
 #define QEMU_ICH9_LPC_PIRQE_ROUT 0x68
 #define QEMU_ICH9_LPC_PIRQ_IRQEN (1 << 7)
+#define QEMU_ICH9_LPC_PIRQ_MASK  0x0f
 
 extern const uint8_t qemu_ich9_lpc_pirq_map[];
 

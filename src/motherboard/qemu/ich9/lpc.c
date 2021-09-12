@@ -47,7 +47,7 @@ void qemu_ich9_lpc_acpi_sci_route(int irq) {
 
 void qemu_ich9_lpc_pirq_route(int pirq, int irq) {
     uint8_t offset = pirq > 3 ? QEMU_ICH9_LPC_PIRQE_ROUT + pirq - 4 : QEMU_ICH9_LPC_PIRQA_ROUT + pirq;
-    lpc_write_byte(offset, (lpc_read_byte(offset) & ~QEMU_ICH9_LPC_PIRQ_IRQEN) | irq);
+    lpc_write_byte(offset, (lpc_read_byte(offset) & ~QEMU_ICH9_LPC_PIRQ_MASK) | (irq & QEMU_ICH9_LPC_PIRQ_MASK));
 }
 
 void qemu_ich9_lpc_pirq_route_pic(int pirq) {
