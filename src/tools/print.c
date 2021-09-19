@@ -32,8 +32,8 @@ void print(const char *msg, ...) {
                 puts(&number_str_ptr[counter]);
             }
             if (*msg == 'x') {
-                char number_str[8];
-                int number = va_arg(args, int);
+                char number_str[9];
+                int number = va_arg(args, uint32_t);
                 memset(&number_str, 0, 9);
                 for (int i = 8; i > 0;) {
                     number_str[--i] = "0123456789abcdef"[number & 0x0f];
@@ -42,6 +42,21 @@ void print(const char *msg, ...) {
                 char *number_str_ptr = (char *) &number_str;
                 int counter = 0;
                 while (number_str_ptr[counter] == '0' && counter < 6) {
+                    counter++;
+                }
+                puts(&number_str_ptr[counter]);
+            }
+            if (*msg == 'X') {
+                char number_str[17];
+                int number = va_arg(args, uint64_t);
+                memset(&number_str, 0, 17);
+                for (int i = 16; i > 0;) {
+                    number_str[--i] = "0123456789abcdef"[number & 0x0f];
+                    number >>= 4;
+                }
+                char *number_str_ptr = (char *) &number_str;
+                int counter = 0;
+                while (number_str_ptr[counter] == '0' && counter < 14) {
                     counter++;
                 }
                 puts(&number_str_ptr[counter]);
