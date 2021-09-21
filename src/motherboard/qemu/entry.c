@@ -279,12 +279,12 @@ void qemu_bios_entry() {
         for (;;) {}
     }
     // Cold reboot
-    if (rtc_read(CMOS_RESET_STATUS) != 0x00) {
-        rtc_write(CMOS_RESET_STATUS, 0x00);
+    if (rtc_reset_status_get() != 0x00) {
+        rtc_reset_status_set(0x00);
         hal_power_reset();
         for (;;) {}
     }
-    rtc_write(CMOS_RESET_STATUS, 0x01);
+    rtc_reset_status_set(0x01);
     // Initialize chipset
     uint16_t north_bridge_vendor = pci_cfg_read_word(0, 0, 0, PCI_CFG_VENDOR);
     uint16_t north_bridge_device = pci_cfg_read_word(0, 0, 0, PCI_CFG_DEVICE);

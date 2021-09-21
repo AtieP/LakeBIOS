@@ -12,4 +12,7 @@
 uint8_t rtc_read(uint8_t index);
 void rtc_write(uint8_t index, uint8_t data);
 
+uint8_t rtc_reset_status_get();
+void rtc_reset_status_set(uint8_t status);
+
 #endif
