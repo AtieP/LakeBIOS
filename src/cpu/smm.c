@@ -1,4 +1,3 @@
-#include <apis/bios/regs.h>
 #include <cpu/pio.h>
 #include <cpu/smm.h>
 #include <tools/print.h>
@@ -31,66 +30,7 @@ static void smm_handler_main() {
         }
     }
     if (command == 0x10) {
-        // Command 0x10 for lakebios: real mode interrupt
-        // Create the register state
-        struct apis_bios_regs regs;
-        if (revision == SMM_REV_32) {
-            regs.ebx = state->regs32.ebx;
-            regs.ecx = state->regs32.ecx;
-            regs.edx = state->regs32.edx;
-            regs.esi = state->regs32.esi;
-            regs.edi = state->regs32.edi;
-            regs.ebp = state->regs32.ebp;
-            regs.eflags = state->regs32.eflags;
-            regs.es = *((uint32_t *) (smbase + 0xffa8)) << 4;
-            regs.ds = *((uint32_t *) (smbase + 0xffb4)) << 4;
-        } else if (revision == SMM_REV_64) {
-            regs.ebx = state->regs64.rbx;
-            regs.ecx = state->regs64.rcx;
-            regs.edx = state->regs64.rdx;
-            regs.esi = state->regs64.rsi;
-            regs.edi = state->regs64.rdi;
-            regs.ebp = state->regs64.rbp;
-            regs.eflags = state->regs64.rflags;
-            regs.es = state->regs64.es.base;
-            regs.ds = state->regs64.ds.base;
-        } else {
-            print("SMM: Invalid SMM revision");
-            for (;;) {}
-        }
-        __asm__ volatile("mov %%cr2, %0" : "=r"(regs.eax));
-        print("SMM: Real mode interrupt vector #0x%x function %x", data, regs.ah);
-        for (;;) {}
-        if (revision == SMM_REV_32) {
-            state->regs32.eax = regs.eax;
-            state->regs32.ebx = regs.ebx;
-            state->regs32.ecx = regs.ecx;
-            state->regs32.edx = regs.edx;
-            state->regs32.esi = regs.esi;
-            state->regs32.edi = regs.edi;
-            state->regs32.ebp = regs.ebp;
-            state->regs32.eflags = regs.eflags;
-        } else if (revision == SMM_REV_64) {
-            state->regs64.rax &= ~0xffffffff;
-            state->regs64.rax |= regs.eax;
-            state->regs64.rbx &= ~0xffffffff;
-            state->regs64.rbx |= regs.ebx;
-            state->regs64.rcx &= ~0xffffffff;
-            state->regs64.rcx |= regs.ecx;
-            state->regs64.rdx &= ~0xffffffff;
-            state->regs64.rdx |= regs.edx;
-            state->regs64.rsi &= ~0xffffffff;
-            state->regs64.rsi |= regs.esi;
-            state->regs64.rdi &= ~0xffffffff;
-            state->regs64.rdi |= regs.edi;
-            state->regs64.rbp &= ~0xffffffff;
-            state->regs64.rbp |= regs.ebp;
-            state->regs64.rflags &= ~0xffffffff;
-            state->regs64.rflags |= regs.eflags;
-        } else {
-            print("SMM: Invalid SMM revision");
-            for (;;) {}
-        }
+        // Command 0x10 for lakebios: Real mode interrupt
     }
     __asm__ volatile("rsm");
     for (;;) {}
