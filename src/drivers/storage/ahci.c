@@ -183,12 +183,19 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
 
 void ahci_init() {
     print("AHCI: Initializing controllers");
-    size_t i;
-    for (i = 0; i < SIZE_MAX; i++) {
+    struct pci_device ahci;
+    ahci.vendor = 0xffff;
+    ahci.device = 0xffff;
+    ahci.class = AHCI_CLASS;
+    ahci.subclass = AHCI_SUBCLASS;
+    ahci.interface = AHCI_INTERFACE;
+    ahci.subsystem_vendor = 0xffff;
+    ahci.subsystem_device = 0xffff;
+    for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t ahci_bus;
         uint8_t ahci_slot;
         uint8_t ahci_function;
-        if (pci_get_device(AHCI_CLASS, AHCI_SUBCLASS, AHCI_INTERFACE, &ahci_bus, &ahci_slot, &ahci_function, i) == 0) {
+        if (pci_device_get(&ahci, &ahci_bus, &ahci_slot, &ahci_function, i) == 0) {
             print("AHCI: Controller found at PCI Bus %d Slot %d Function %d", ahci_bus, ahci_slot, ahci_function);
             if (controller_init(ahci_bus, ahci_slot, ahci_function) == -1) {
                 print("AHCI: Controller mentioned before has not been initialized successfully");

@@ -171,33 +171,34 @@ static void non_vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t fu
 void bochs_display_init() {
     print("BGA: Initializing controllers");
     // First initialize all the VGA compatible Bochs displays
+    struct pci_device bochs_display;
+    bochs_display.vendor = BOCHS_DISPLAY_VENDOR;
+    bochs_display.device = BOCHS_DISPLAY_DEVICE;
+    bochs_display.class = 0x03;
+    bochs_display.subclass = 0x00;
+    bochs_display.interface = 0x00;
+    bochs_display.subsystem_vendor = 0xffff;
+    bochs_display.subsystem_device = 0xffff;
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t bus;
         uint8_t slot;
         uint8_t function;
-        if (pci_get_device(0x03, 0x00, 0x00, &bus, &slot, &function, i) == 0) {
-            uint16_t vendor = pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR);
-            uint16_t device = pci_cfg_read_word(bus, slot, function, PCI_CFG_DEVICE);
-            if (vendor == BOCHS_DISPLAY_VENDOR && device == BOCHS_DISPLAY_DEVICE) {
-                print("BGA: VGA Compatible controller found at PCI Bus %d Slot %d Function %d", bus, slot, function);
-                vga_compat_controller_init(bus, slot, function);
-            }
+        if (pci_device_get(&bochs_display, &bus, &slot, &function, i) == 0) {
+            print("BGA: VGA Compatible controller found at PCI Bus %d Slot %d Function %d", bus, slot, function);
+            vga_compat_controller_init(bus, slot, function);
         } else {
             break;
         }
     }
+    bochs_display.subclass = 0x80;
     // Then all the non-compatibles
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t bus;
         uint8_t slot;
         uint8_t function;
-        if (pci_get_device(0x03, 0x80, 0x00, &bus, &slot, &function, i) == 0) {
-            uint16_t vendor = pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR);
-            uint16_t device = pci_cfg_read_word(bus, slot, function, PCI_CFG_DEVICE);
-            if (vendor == BOCHS_DISPLAY_VENDOR && device == BOCHS_DISPLAY_DEVICE) {
-                print("BGA: Non-VGA Compatible controller found at PCI Bus %d Slot %d Function %d", bus, slot, function);
-                non_vga_compat_controller_init(bus, slot, function);
-            }
+        if (pci_device_get(&bochs_display, &bus, &slot, &function, i) == 0) {
+            print("BGA: Non-VGA Compatible controller found at PCI Bus %d Slot %d Function %d", bus, slot, function);
+            non_vga_compat_controller_init(bus, slot, function);
         } else {
             break;
         }

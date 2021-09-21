@@ -218,11 +218,19 @@ success:
 
 void nvme_init() {
     print("NVME: Initializing controllers");
+    struct pci_device nvme;
+    nvme.vendor = 0xffff;
+    nvme.device = 0xffff;
+    nvme.class = NVME_CLASS;
+    nvme.subclass = NVME_SUBCLASS;
+    nvme.interface = NVME_INTERFACE;
+    nvme.subsystem_vendor = 0xffff;
+    nvme.subsystem_device = 0xffff;
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t nvme_bus;
         uint8_t nvme_slot;
         uint8_t nvme_function;
-        if (pci_get_device(NVME_CLASS, NVME_SUBCLASS, NVME_INTERFACE, &nvme_bus, &nvme_slot, &nvme_function, i) == 0) {
+        if (pci_device_get(&nvme, &nvme_bus, &nvme_slot, &nvme_function, i) == 0) {
             print("NVME: Controller found at PCI Bus %d Slot %d Function %d", nvme_bus, nvme_slot, nvme_function);
             int ret = controller_init(nvme_bus, nvme_slot, nvme_function);
             if (ret == -1) {

@@ -68,7 +68,18 @@ void pci_control_set(uint8_t bus, uint8_t slot, uint8_t function, uint16_t bits)
 void pci_control_clear(uint8_t bus, uint8_t slot, uint8_t function, uint16_t bits);
 
 int pci_setup(struct pci_bar_window *mem_window, struct pci_bar_window *io_window, struct pci_bar_window *pref_window, uint8_t (*get_interrupt_line_)(int pirq, uint8_t bus, uint8_t slot, uint8_t function));
-int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, size_t index);
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar);
+
+struct pci_device {
+    uint16_t vendor;
+    uint16_t device;
+    uint8_t class;
+    uint8_t subclass;
+    uint8_t interface;
+    uint16_t subsystem_vendor;
+    uint16_t subsystem_device;
+};
+
+int pci_device_get(struct pci_device *device, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, int index);
 
 #endif

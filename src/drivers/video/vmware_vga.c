@@ -71,17 +71,21 @@ static void controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
 
 void vmware_vga_init() {
     print("VMWare VGA: Initializing controller");
+    struct pci_device vmware_vga;
+    vmware_vga.vendor = VMWARE_VGA_VENDOR;
+    vmware_vga.device = VMWARE_VGA_DEVICE;
+    vmware_vga.class = 0x03;
+    vmware_vga.subclass = 0x00;
+    vmware_vga.interface = 0x00;
+    vmware_vga.subsystem_vendor = 0xffff;
+    vmware_vga.subsystem_device = 0xffff;
     for (size_t i = 0; i < SIZE_MAX; i++) {
         uint8_t bus;
         uint8_t slot;
         uint8_t function;
-        if (pci_get_device(0x03, 0x00, 0x00, &bus, &slot, &function, i) == 0) {
-            uint16_t vendor = pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR);
-            uint16_t device = pci_cfg_read_word(bus, slot, function, PCI_CFG_DEVICE);
-            if (vendor == VMWARE_VGA_VENDOR && device == VMWARE_VGA_DEVICE) {
-                print("VMWare VGA: Controller found at PCI Bus %d Slot %d Function %d", bus, slot, function);
-                controller_init(bus, slot, function);
-            }
+        if (pci_device_get(&vmware_vga, &bus, &slot, &function, i) == 0) {
+            print("VMWare VGA: Controller found at PCI Bus %d Slot %d Function %d", bus, slot, function);
+            controller_init(bus, slot, function);
         } else {
             break;
         }

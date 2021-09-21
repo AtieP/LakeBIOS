@@ -68,6 +68,7 @@ static int allocate_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     }
     // Does the BAR exist?
     if (!bar_size) {
+        pci_cfg_write_dword(bus, slot, function, offset, 0);
         return -1;
     }
 allocate_io:
@@ -314,36 +315,6 @@ int pci_setup(struct pci_bar_window *mem_window, struct pci_bar_window *io_windo
     return 0;
 }
 
-int pci_get_device(uint8_t class, uint8_t subclass, uint8_t interface, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, size_t index) {
-    size_t matches = 0;
-    for (int bus = 0; bus < buses; bus++) {
-        for (int slot = 0; slot < 32; slot++) {
-            if (pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR) == 0xffff) {
-                continue;
-            }
-            int functions = pci_cfg_read_byte(bus, slot, 0, PCI_CFG_HEADER) & PCI_CFG_HEADER_MULTIFUNCTION ? 8 : 1;
-            for (int function = 0; function < functions; function++) {
-                if (pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR) == 0xffff) {
-                    continue;
-                }
-                uint8_t class_ = pci_cfg_read_byte(bus, slot, function, PCI_CFG_CLASS);
-                uint8_t subclass_ = pci_cfg_read_byte(bus, slot, function, PCI_CFG_SUBCLASS);
-                uint8_t interface_ = pci_cfg_read_byte(bus, slot, function, PCI_CFG_INTERFACE);
-                if (class == class_ && subclass == subclass_ && interface == interface_) {
-                    if (index == matches) {
-                        *bus_ptr = bus;
-                        *slot_ptr = slot;
-                        *function_ptr = function;
-                        return 0;
-                    }
-                    matches++;
-                }
-            }
-        }
-    }
-    return -1;
-}
-
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
     uint32_t bar_val = pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + (bar * 4));
     if (bar_val & 1) {
@@ -359,4 +330,60 @@ uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t function, int bar) {
         return ((uint64_t) pci_cfg_read_dword(bus, slot, function, PCI_CFG_BAR0 + ((bar + 1) * 4)) << 32) | (bar_val & ~0x0f);
     }
     return 0;
+}
+
+static int find_device_in_bus(struct pci_device *device, uint8_t bus, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, int *occurence, int index) {
+    for (uint8_t slot = 0; slot < 32; slot++) {
+        if (pci_cfg_read_word(bus, slot, 0, PCI_CFG_VENDOR) == 0xffff) {
+            continue;
+        }
+        uint8_t functions = pci_cfg_read_byte(bus, slot, 0, PCI_CFG_HEADER) & PCI_CFG_HEADER_MULTIFUNCTION ? 8 : 1;
+        for (uint8_t function = 0; function < functions; function++) {
+            if (pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR) == 0xffff) {
+                continue;
+            }
+            uint8_t type = pci_cfg_read_byte(bus, slot, function, PCI_CFG_HEADER) & ~PCI_CFG_HEADER_MULTIFUNCTION;
+            if (type == 0x00) {
+                struct pci_device found_device;
+                found_device.vendor = pci_cfg_read_word(bus, slot, function, PCI_CFG_VENDOR);
+                found_device.device = pci_cfg_read_word(bus, slot, function, PCI_CFG_DEVICE);
+                found_device.class = pci_cfg_read_byte(bus, slot, function, PCI_CFG_CLASS);
+                found_device.subclass = pci_cfg_read_byte(bus, slot, function, PCI_CFG_SUBCLASS);
+                found_device.interface = pci_cfg_read_byte(bus, slot, function, PCI_CFG_INTERFACE);
+                found_device.subsystem_vendor = pci_cfg_read_word(bus, slot, function, PCI_CFG_SUBSYSTEM_VENDOR);
+                found_device.subsystem_device = pci_cfg_read_word(bus, slot, function, PCI_CFG_SUBSYSTEM_DEVICE);
+                if (found_device.vendor == device->vendor || device->vendor == 0xffff) {
+                    if (found_device.device == device->device || device->device == 0xffff) {
+                        if (found_device.class == device->class || device->class == 0xff) {
+                            if (found_device.subclass == device->subclass || device->subclass == 0xff) {
+                                if (found_device.interface == device->interface || device->interface == 0xff) {
+                                    if (found_device.subsystem_vendor == device->subsystem_vendor || device->subsystem_vendor == 0xffff) {
+                                        if (found_device.subsystem_device == device->subsystem_device || device->subsystem_device == 0xffff) {
+                                            if (*occurence == index) {
+                                                *bus_ptr = bus;
+                                                *slot_ptr = slot;
+                                                *function_ptr = function;
+                                                return 0;
+                                            }
+                                            *occurence = *occurence + 1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (type == 0x01) {
+                if (find_device_in_bus(device, pci_cfg_read_byte(bus, slot, function, PCI_CFG_SECONDARY_BUS), bus_ptr, slot_ptr, function_ptr, occurence, index) == 0) {
+                    return 0;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+int pci_device_get(struct pci_device *device, uint8_t *bus_ptr, uint8_t *slot_ptr, uint8_t *function_ptr, int index) {
+    int occurrence = 0;
+    return find_device_in_bus(device, 0, bus_ptr, slot_ptr, function_ptr, &occurrence, index);
 }
