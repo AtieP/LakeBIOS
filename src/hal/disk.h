@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define MAX_FLOPPIES 4
+#define MAX_DISKS    16
+
 #define HAL_DISK_AHCI 0x01
 #define HAL_DISK_NVME 0x02
 #define HAL_DISK_FLP  0x03
@@ -65,9 +68,9 @@ struct disk_abstract {
 #define HAL_DISK_ESIZE    -4
 #define HAL_DISK_EUNK     -5
 #define HAL_DISK_ENOMORE  -6
+#define HAL_DISK_ENOFOUND -7
 
 int hal_disk_submit(struct disk_abstract *disk, int flp);
-int hal_disk_rw(uint8_t bios_dl, void *buf, uint64_t lba, int len, int write);
-struct disk_abstract *hal_disk_get(uint8_t bios_dl);
+int hal_disk_rw(int disk, void *buf, uint64_t lba, int len, int write);
 
 #endif

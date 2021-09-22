@@ -4,8 +4,8 @@
 
 // https://chrishewett.com/blog/true-rgb565-colour-picker/ :D
 
-static struct display_abstract display_inventory[256] = {0};
-static uint8_t display_inventory_index = 0x00;
+static struct display_abstract display_inventory[MAX_DISPLAYS] = {0};
+static int display_inventory_index = 0x00;
 
 static uint16_t gfx_pal_16[] = {
     0x0000,
@@ -45,6 +45,14 @@ static uint32_t gfx_pal_24_32[] = {
     0xffffff
 };
 
+static struct display_abstract *get_display(int display) {
+    if (display >= MAX_DISPLAYS) {
+        return NULL;
+    } else {
+        return display_inventory[display].present ? &display_inventory[display] : NULL;
+    }
+}
+
 static const char *display_type_to_name(int type) {
     switch (type) {
         case HAL_DISPLAY_VGA:
@@ -63,7 +71,7 @@ static const char *display_type_to_name(int type) {
 }
 
 int hal_display_submit(struct display_abstract *display_abstract) {
-    if (display_inventory_index == 0xff) {
+    if (display_inventory_index >= MAX_DISPLAYS) {
         print("HAL: Could not submit a \"%s\" because there aren't any free slots anymore", display_type_to_name(display_abstract->interface));
         return HAL_DISPLAY_ENOMORE;
     }
@@ -74,9 +82,9 @@ int hal_display_submit(struct display_abstract *display_abstract) {
     return HAL_DISPLAY_ESUCCESS;
 }
 
-int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int vga_mode) {
-    struct display_abstract *display_abstract = &display_inventory[display];
-    if (!display_abstract->present) {
+int hal_display_resolution(int display, int width, int height, int bpp, int clear, int text, int vga_mode) {
+    struct display_abstract *display_abstract = get_display(display);
+    if (!display_abstract) {
         return HAL_DISPLAY_ENOFOUND;
     }
     int (*resolution)(struct display_abstract *this, int width, int height, int bpp, int clear, int text, int vga_mode) = 
@@ -87,9 +95,9 @@ int hal_display_resolution(uint8_t display, int width, int height, int bpp, int 
     return resolution(display_abstract, width, height, bpp, clear, text, vga_mode);
 }
 
-int hal_display_font_get(uint8_t display, const void **font, int *width, int *height) {
-    struct display_abstract *display_abstract = &display_inventory[display];
-    if (!display_abstract->present) {
+int hal_display_font_get(int display, const void **font, int *width, int *height) {
+    struct display_abstract *display_abstract = get_display(display);
+    if (!display_abstract) {
         return HAL_DISPLAY_ENOFOUND;
     }
     int (*font_get)(struct display_abstract *this, const void **font, int *width, int *height) = 
@@ -100,9 +108,9 @@ int hal_display_font_get(uint8_t display, const void **font, int *width, int *he
     return font_get(display_abstract, font, width, height);
 }
 
-int hal_display_font_set(uint8_t display, const void *font, int width, int height) {
-    struct display_abstract *display_abstract = &display_inventory[display];
-    if (!display_abstract->present) {
+int hal_display_font_set(int display, const void *font, int width, int height) {
+    struct display_abstract *display_abstract = get_display(display);
+    if (!display_abstract) {
         return HAL_DISPLAY_ENOFOUND;
     }
     int (*font_set)(struct display_abstract *this, const void *font, int width, int height) = 
@@ -113,10 +121,10 @@ int hal_display_font_set(uint8_t display, const void *font, int width, int heigh
     return font_set(display_abstract, font, width, height);
 }
 
-int hal_display_plot_char(uint8_t display, int ch, int x, int y, uint8_t background_color, uint8_t foreground_color) {
-    struct display_abstract *display_abstract = &display_inventory[display];
-    if (!display_abstract->present) {
-        return HAL_DISPLAY_ENOIMPL;
+int hal_display_plot_char(int display, int ch, int x, int y, uint8_t background_color, uint8_t foreground_color) {
+    struct display_abstract *display_abstract = get_display(display);
+    if (!display_abstract) {
+        return HAL_DISPLAY_ENOFOUND;
     }
     int width = display_abstract->common.width;
     int height = display_abstract->common.height;
@@ -155,6 +163,10 @@ int hal_display_plot_char(uint8_t display, int ch, int x, int y, uint8_t backgro
     return HAL_DISPLAY_ESUCCESS;
 }
 
-int hal_display_get_interface(uint8_t display) {
-    return display_inventory[display].present ? display_inventory[display].interface : HAL_DISPLAY_ENOFOUND;
+int hal_display_get_interface(int display) {
+    struct display_abstract *display_abstract = get_display(display);
+    if (!display_abstract) {
+        return HAL_DISPLAY_ENOFOUND;
+    }
+    return display_abstract->interface;
 }

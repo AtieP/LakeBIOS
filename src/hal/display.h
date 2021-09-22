@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define MAX_DISPLAYS 16
+
 #define HAL_DISPLAY_VGA        0x01
 #define HAL_DISPLAY_BGA        0x02
 #define HAL_DISPLAY_VGA_BGA    0x03
@@ -63,10 +65,10 @@ struct display_abstract {
 #define HAL_DISPLAY_ENOMORE  -4
 
 int hal_display_submit(struct display_abstract *display_abstract);
-int hal_display_resolution(uint8_t display, int width, int height, int bpp, int clear, int text, int vga_mode);
-int hal_display_font_get(uint8_t display, const void **font, int *width, int *height);
-int hal_display_font_set(uint8_t display, const void *font, int width, int height);
-int hal_display_plot_char(uint8_t display, int ch, int x, int y, uint8_t background_color, uint8_t foreground_color);
-int hal_display_get_interface(uint8_t display);
+int hal_display_resolution(int display, int width, int height, int bpp, int clear, int text, int vga_mode);
+int hal_display_font_get(int display, const void **font, int *width, int *height);
+int hal_display_font_set(int display, const void *font, int width, int height);
+int hal_display_plot_char(int display, int ch, int x, int y, uint8_t background_color, uint8_t foreground_color);
+int hal_display_get_interface(int display);
 
 #endif
