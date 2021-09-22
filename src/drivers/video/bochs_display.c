@@ -155,6 +155,10 @@ static void vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t functi
     display.interface = HAL_DISPLAY_VGA_BGA;
     display.specific.bga.bar2 = bar2;
     display.specific.bga.fb = (void *) (uintptr_t) pci_get_bar(bus, slot, function, 0);
+    display.geography.interface = HAL_DISPLAY_INTERCONNECT_PCI;
+    display.geography.pci.bus = bus;
+    display.geography.pci.slot = slot;
+    display.geography.pci.function = function;
     hal_submit(&display);
 }
 
@@ -165,6 +169,10 @@ static void non_vga_compat_controller_init(uint8_t bus, uint8_t slot, uint8_t fu
     display.interface = HAL_DISPLAY_BGA;
     display.specific.bga.bar2 = bar2;
     display.specific.bga.fb = (void *) (uintptr_t) pci_get_bar(bus, slot, function, 0);
+    display.geography.interface = HAL_DISPLAY_INTERCONNECT_PCI;
+    display.geography.pci.bus = bus;
+    display.geography.pci.slot = slot;
+    display.geography.pci.function = function;
     hal_submit(&display);
 }
 

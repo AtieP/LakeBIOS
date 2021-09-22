@@ -66,6 +66,10 @@ static void controller_init(uint8_t bus, uint8_t slot, uint8_t function) {
     vmware_vga.specific.vmware_vga.bar0 = bar0;
     vmware_vga.specific.vmware_vga.fb = fb;
     vmware_vga.specific.vmware_vga.fifo = fifo;
+    vmware_vga.geography.interface = HAL_DISPLAY_INTERCONNECT_PCI;
+    vmware_vga.geography.pci.bus = bus;
+    vmware_vga.geography.pci.slot = slot;
+    vmware_vga.geography.pci.function = function;
     hal_submit(&vmware_vga);
 }
 

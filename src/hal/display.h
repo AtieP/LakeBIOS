@@ -9,6 +9,8 @@
 #define HAL_DISPLAY_RAMFB      0x04
 #define HAL_DISPLAY_VMWARE_VGA 0x05
 
+#define HAL_DISPLAY_INTERCONNECT_PCI 0x01
+
 struct display_abstract {
     int present;
     int interface;
@@ -44,6 +46,14 @@ struct display_abstract {
         int (*font_get)(struct display_abstract *this, const void **font, int *width, int *height);
         int (*font_set)(struct display_abstract *this, const void *font, int width, int height);
     } ops;
+    struct {
+        int interface;
+        union {
+            uint8_t bus;
+            uint8_t slot;
+            uint8_t function;
+        } pci;
+    } geography;
 };
 
 #define HAL_DISPLAY_ESUCCESS  0

@@ -184,6 +184,10 @@ static int controller_init(uint8_t nvme_bus, uint8_t nvme_slot, uint8_t nvme_fun
         disk.specific.nvme.head = io_head;
         disk.specific.nvme.tail = io_tail;
         disk.specific.nvme.phase = io_phase;
+        disk.geography.interface = HAL_DISK_INTERCONNECT_PCI;
+        disk.geography.pci.bus = nvme_bus;
+        disk.geography.pci.slot = nvme_slot;
+        disk.geography.pci.function = nvme_function;
         if (hal_submit(&disk, 0) == HAL_DISK_ENOMORE) {
             break;
         }

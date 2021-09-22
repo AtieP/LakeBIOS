@@ -7,6 +7,9 @@
 #define HAL_DISK_NVME 0x02
 #define HAL_DISK_FLP  0x03
 #define HAL_DISK_ATA_PIO 0x04
+
+#define HAL_DISK_INTERCONNECT_PCI 0x01
+
 struct disk_abstract {
     int present;
     int interface;
@@ -45,6 +48,14 @@ struct disk_abstract {
     struct ops {
         int (*rw)(struct disk_abstract *this, void *buf, uint64_t lba, int len, int write);
     } ops;
+    struct {
+        int interface;
+        union {
+            uint8_t bus;
+            uint8_t slot;
+            uint8_t function;
+        } pci;
+    } geography;
 };
 
 #define HAL_DISK_ESUCCESS  0

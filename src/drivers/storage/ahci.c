@@ -86,7 +86,7 @@ static void port_deinit(volatile struct ahci_abar *abar, int index) {
 
 static int hal_submit(struct disk_abstract *disk, int flp);
 
-static int port_init(volatile struct ahci_abar *abar, int index) {
+static int port_init(volatile struct ahci_abar *abar, uint8_t bus, uint8_t slot, uint8_t function, int index) {
     volatile struct ahci_port *port = (volatile struct ahci_port *) &abar->ports[index];
     port->command_status &= ~(AHCI_PORT_CMD_STS_FRE | AHCI_PORT_CMD_STS_ST);
     while (port->command_status & (AHCI_PORT_CMD_STS_CR | AHCI_PORT_CMD_STS_FR)) {
@@ -150,6 +150,10 @@ static int port_init(volatile struct ahci_abar *abar, int index) {
     disk.specific.ahci.port = index;
     disk.specific.ahci.lba48 = lba48;
     disk.specific.ahci.drive = ATA_DRIVE_MASTER;
+    disk.geography.interface = HAL_DISK_INTERCONNECT_PCI;
+    disk.geography.pci.bus = bus;
+    disk.geography.pci.slot = slot;
+    disk.geography.pci.function = function;
     if (hal_submit(&disk, 0) == HAL_DISK_ENOMORE) {
         port_deinit(abar, index);
         return -1;
@@ -171,7 +175,7 @@ static int controller_init(uint8_t ahci_bus, uint8_t ahci_slot, uint8_t ahci_fun
     }
     for (int i = 0; i < get_ports_silicon(abar); i++) {
         if (port_implemented(abar, i)) {
-            if (port_init(abar, i) == 0) {
+            if (port_init(abar, ahci_bus, ahci_slot, ahci_function, i) == 0) {
                 print("AHCI: port %d initialized successfully", i);
             } else {
                 print("AHCI: port %d could not be initialized", i);
