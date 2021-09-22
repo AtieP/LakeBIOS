@@ -17,14 +17,6 @@ static void send_address(uint8_t bus, uint8_t slot, uint8_t function, uint8_t of
     outd(PCI_CFG_ADDRESS, 0x80000000 | (bus << 16) | (slot << 11) | (function << 8) | (offset & 0xfc));
 }
 
-static int pci_exists() {
-    send_address(0, 0, 0, 0);
-    if (ind(PCI_CFG_ADDRESS) != 0x80000000) {
-        return 0;
-    }
-    return 1;
-}
-
 static int get_bar_type(uint32_t bar) {
     if (bar & 1) {
         return PCI_BAR_IO;
@@ -263,6 +255,14 @@ static int setup_bus(uint8_t bus) {
 }
 
 /* Globally visible functions */
+
+int pci_exists() {
+    send_address(0, 0, 0, 0);
+    if (ind(PCI_CFG_ADDRESS) != 0x80000000) {
+        return 0;
+    }
+    return 1;
+}
 
 uint8_t pci_cfg_read_byte(uint8_t bus, uint8_t slot, uint8_t function, uint8_t offset) {
     send_address(bus, slot, function, offset);
